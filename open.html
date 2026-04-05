@@ -83,6 +83,16 @@
         .map-btn .arrow { color: var(--text3); font-size: 20px; }
         .footer { margin-top: 32px; font-size: 12px; color: var(--text3); }
         .error { padding: 24px; background: rgba(239,68,68,0.1); border-radius: var(--radius); color: #ef4444; }
+        .home-link {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 20px; padding: 14px 24px;
+            background: linear-gradient(135deg, var(--accent), #0891b2);
+            color: #fff; text-decoration: none;
+            border-radius: var(--radius); font-size: 15px; font-weight: 600;
+            transition: 0.3s ease; box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .home-link:active { transform: scale(0.97); }
+        .home-link .material-icons-round { font-size: 20px; }
     </style>
 </head>
 <body>
@@ -95,6 +105,10 @@
         <p class="coords" id="loc-coords">--</p>
         <p class="subtitle">Konumu açmak için bir harita seçin</p>
         <div class="map-options" id="map-options"></div>
+        <a href="./" class="home-link" id="home-link">
+            <span class="material-icons-round">explore</span>
+            <span>Konum Paylaş Uygulamasını Aç</span>
+        </a>
         <p class="footer">Konum Paylaş • Beta v1.0</p>
     </div>
 
