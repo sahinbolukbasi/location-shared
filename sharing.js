@@ -106,7 +106,7 @@ const Sharing = (() => {
         }
     }
 
-    function saveLocation(lat, lng, name) {
+    function saveLocation(lat, lng, name, note) {
         const locations = getSavedLocations();
         // Check duplicate
         const exists = locations.find(
@@ -119,8 +119,19 @@ const Sharing = (() => {
             lat,
             lng,
             name: name || 'Konum',
+            note: note || '',
             savedAt: Date.now()
         });
+        localStorage.setItem('saved_locations', JSON.stringify(locations));
+        return true;
+    }
+
+    function updateLocation(id, newName, newNote) {
+        const locations = getSavedLocations();
+        const loc = locations.find(l => l.id === id);
+        if (!loc) return false;
+        if (newName !== undefined) loc.name = newName;
+        if (newNote !== undefined) loc.note = newNote;
         localStorage.setItem('saved_locations', JSON.stringify(locations));
         return true;
     }
@@ -147,6 +158,7 @@ const Sharing = (() => {
         lookupCode,
         getSavedLocations,
         saveLocation,
+        updateLocation,
         removeLocation,
         isLocationSaved
     };

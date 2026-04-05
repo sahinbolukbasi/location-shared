@@ -30,6 +30,7 @@
         locationCoords: $('#location-coords'),
         btnSavePin: $('#btn-save-pin'),
         btnShare: $('#btn-share'),
+        btnNavigate: $('#btn-navigate'),
         btnCloseSheet: $('#btn-close-sheet'),
         fabPins: $('#fab-pins'),
         fabCode: $('#fab-code'),
@@ -82,9 +83,17 @@
         nameModal: $('#name-modal'),
         btnCloseName: $('#btn-close-name'),
         nameInput: $('#name-input'),
+        noteInput: $('#note-input'),
         nameAutoValue: $('#name-auto-value'),
         btnSaveWithAuto: $('#btn-save-with-auto'),
         btnSaveWithName: $('#btn-save-with-name'),
+        // Edit modal
+        editModalOverlay: $('#edit-modal-overlay'),
+        editModal: $('#edit-modal'),
+        btnCloseEdit: $('#btn-close-edit'),
+        editNameInput: $('#edit-name-input'),
+        editNoteInput: $('#edit-note-input'),
+        btnSaveEdit: $('#btn-save-edit'),
         // Toast
         toast: $('#toast'),
         toastIcon: $('#toast-icon'),
@@ -291,6 +300,7 @@
 
     function openNameModal() {
         dom.nameInput.value = '';
+        dom.noteInput.value = '';
         dom.nameAutoValue.textContent = selectedLocation?.name || 'Bilinmeyen konum';
         openModal(dom.nameModalOverlay, dom.nameModal);
         setTimeout(() => dom.nameInput.focus(), 400);
@@ -300,12 +310,13 @@
         if (!selectedLocation) return;
         const { lat, lng, name: autoName } = selectedLocation;
         const finalName = customName || autoName || 'Konum';
+        const note = dom.noteInput.value.trim();
 
         // Update selected location name
         selectedLocation.name = finalName;
         dom.locationName.textContent = finalName;
 
-        const success = Sharing.saveLocation(lat, lng, finalName);
+        const success = Sharing.saveLocation(lat, lng, finalName, note);
         if (success) {
             updateSaveButton(lat, lng);
             updatePinBadge();
@@ -314,6 +325,42 @@
         }
 
         closeModal(dom.nameModalOverlay, dom.nameModal);
+    }
+
+    // ========== NAVIGATE ==========
+    function navigateToLocation(lat, lng, name) {
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const openUrl = `${baseUrl}open.html?lat=${lat}&lng=${lng}&name=${encodeURIComponent(name || 'Konum')}`;
+        window.open(openUrl, '_blank');
+    }
+
+    // ========== EDIT LOCATION ==========
+    let editingLocationId = null;
+
+    function openEditModal(loc) {
+        editingLocationId = loc.id;
+        dom.editNameInput.value = loc.name || '';
+        dom.editNoteInput.value = loc.note || '';
+        openModal(dom.editModalOverlay, dom.editModal);
+        setTimeout(() => dom.editNameInput.focus(), 400);
+    }
+
+    function handleSaveEdit() {
+        if (!editingLocationId) return;
+        const newName = dom.editNameInput.value.trim();
+        if (!newName) {
+            dom.editNameInput.style.borderColor = 'var(--red)';
+            setTimeout(() => { dom.editNameInput.style.borderColor = ''; }, 1500);
+            return;
+        }
+        const newNote = dom.editNoteInput.value.trim();
+        Sharing.updateLocation(editingLocationId, newName, newNote);
+        closeModal(dom.editModalOverlay, dom.editModal, () => {
+            renderSavedList();
+            loadSavedMarkers();
+            showToast('Konum güncellendi', 'check_circle');
+        });
+        editingLocationId = null;
     }
 
     // ========== SAVED MARKERS ON MAP ==========
@@ -544,10 +591,14 @@
                 <div class="saved-item-info">
                     <h4>${loc.name}</h4>
                     <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
+                    ${loc.note ? `<div class="saved-item-note"><span class="material-icons-round">sticky_note_2</span>${loc.note}</div>` : ''}
                 </div>
                 <div class="saved-item-actions">
-                    <button class="icon-btn" data-action="goto" title="Haritada Göster">
-                        <span class="material-icons-round">my_location</span>
+                    <button class="icon-btn" data-action="navigate" title="Yol Tarifi">
+                        <span class="material-icons-round">directions</span>
+                    </button>
+                    <button class="icon-btn" data-action="edit" title="Düzenle">
+                        <span class="material-icons-round">edit</span>
                     </button>
                     <button class="icon-btn" data-action="share" title="Paylaş">
                         <span class="material-icons-round">share</span>
@@ -570,9 +621,17 @@
                 if (!loc) return;
 
                 switch (action) {
+                    case 'navigate':
+                        navigateToLocation(loc.lat, loc.lng, loc.name);
+                        break;
                     case 'goto':
                         closeModal(dom.savedModalOverlay, dom.savedModal, () => {
                             setSelectedLocation(loc.lat, loc.lng, loc.name);
+                        });
+                        break;
+                    case 'edit':
+                        closeModal(dom.savedModalOverlay, dom.savedModal, () => {
+                            openEditModal(loc);
                         });
                         break;
                     case 'share':
@@ -701,6 +760,10 @@
         // Bottom sheet actions
         dom.btnSavePin.addEventListener('click', handleSavePin);
         dom.btnShare.addEventListener('click', openShareModal);
+        dom.btnNavigate.addEventListener('click', () => {
+            if (!selectedLocation) return;
+            navigateToLocation(selectedLocation.lat, selectedLocation.lng, selectedLocation.name);
+        });
         dom.btnCloseSheet.addEventListener('click', () => {
             hideBottomSheet();
             if (currentMarker) {
@@ -767,6 +830,14 @@
                 const customName = dom.nameInput.value.trim();
                 if (customName) saveWithName(customName);
             }
+        });
+
+        // Edit modal
+        dom.btnCloseEdit.addEventListener('click', () => closeModal(dom.editModalOverlay, dom.editModal));
+        dom.editModalOverlay.addEventListener('click', () => closeModal(dom.editModalOverlay, dom.editModal));
+        dom.btnSaveEdit.addEventListener('click', handleSaveEdit);
+        dom.editNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleSaveEdit();
         });
 
         // Ripple to action buttons

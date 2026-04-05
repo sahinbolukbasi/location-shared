@@ -79,6 +79,10 @@
                     <span class="material-icons-round">bookmark_add</span>
                     <span>Kaydet</span>
                 </button>
+                <button id="btn-navigate" class="action-btn navigate-btn">
+                    <span class="material-icons-round">directions</span>
+                    <span>Yol Tarifi</span>
+                </button>
                 <button id="btn-share" class="action-btn share-btn">
                     <span class="material-icons-round">share</span>
                     <span>Paylaş</span>
@@ -338,9 +342,12 @@
             <div class="name-modal-icon">
                 <span class="material-icons-round">edit_location_alt</span>
             </div>
-            <p class="name-modal-desc">Bu konuma bir ad verin</p>
+            <p class="name-modal-desc" id="name-modal-desc">Bu konuma bir ad verin</p>
             <div class="name-input-wrapper">
                 <input type="text" id="name-input" placeholder="Örn: Ev, İş, Kafe..." maxlength="60">
+            </div>
+            <div class="note-input-wrapper">
+                <textarea id="note-input" placeholder="Not ekleyin (örn: 3. kat, arka kapıdan gir...)" maxlength="200" rows="2"></textarea>
             </div>
             <p class="name-modal-auto" id="name-auto-label">Otomatik: <span id="name-auto-value">--</span></p>
             <div class="name-modal-actions">
@@ -353,6 +360,32 @@
                     <span>Kaydet</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Location Modal -->
+    <div id="edit-modal-overlay" class="overlay hidden"></div>
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Konumu Düzenle</h3>
+            <button class="icon-btn modal-close" id="btn-close-edit">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <div class="name-modal-icon" style="background: linear-gradient(135deg, var(--green), #16a34a);box-shadow: 0 4px 20px var(--green-glow);">
+                <span class="material-icons-round">edit</span>
+            </div>
+            <div class="name-input-wrapper">
+                <input type="text" id="edit-name-input" placeholder="Konum adı" maxlength="60">
+            </div>
+            <div class="note-input-wrapper">
+                <textarea id="edit-note-input" placeholder="Not ekleyin..." maxlength="200" rows="2"></textarea>
+            </div>
+            <button id="btn-save-edit" class="primary-btn" style="margin-top:16px;background:linear-gradient(135deg,var(--green),#16a34a);box-shadow:0 4px 16px var(--green-glow);">
+                <span class="material-icons-round">check</span>
+                <span>Güncelle</span>
+            </button>
         </div>
     </div>
 
