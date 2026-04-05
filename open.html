@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0e1a">
+    <title>Konum Paylaşıldı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0e1a;
+            --surface: #1e293b;
+            --border: rgba(255,255,255,0.08);
+            --text: #f1f5f9;
+            --text2: #94a3b8;
+            --text3: #64748b;
+            --accent: #06b6d4;
+            --accent-glow: rgba(6,182,212,0.25);
+            --radius: 14px;
+            --font: 'Inter', sans-serif;
+        }
+        html, body {
+            height: 100%; width: 100%;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            width: 100%; max-width: 400px;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .pin-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, var(--accent), #0891b2);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 4px 24px var(--accent-glow);
+            animation: bounce 1s ease-in-out;
+        }
+        @keyframes bounce {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .pin-icon .material-icons-round { font-size: 40px; color: #fff; }
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .location-name { font-size: 15px; color: var(--text2); margin-bottom: 4px; }
+        .coords { font-size: 13px; color: var(--text3); margin-bottom: 32px; }
+        .subtitle { font-size: 14px; color: var(--text3); margin-bottom: 16px; }
+        .map-options { display: flex; flex-direction: column; gap: 10px; }
+        .map-btn {
+            display: flex; align-items: center; gap: 14px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: var(--font);
+            font-size: 15px; font-weight: 600;
+            color: var(--text);
+            cursor: pointer; text-decoration: none;
+            transition: 0.3s ease;
+        }
+        .map-btn:active { transform: scale(0.97); background: #273548; }
+        .map-btn-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+        }
+        .google { background: rgba(66,133,244,0.15); color: #4285F4; }
+        .apple { background: rgba(255,255,255,0.1); color: #fff; }
+        .yandex { background: rgba(255,204,0,0.15); color: #FC0; }
+        .map-btn-text { flex: 1; text-align: left; }
+        .map-btn-text small { display: block; font-size: 12px; color: var(--text3); font-weight: 400; margin-top: 2px; }
+        .map-btn .arrow { color: var(--text3); font-size: 20px; }
+        .footer { margin-top: 32px; font-size: 12px; color: var(--text3); }
+        .error { padding: 24px; background: rgba(239,68,68,0.1); border-radius: var(--radius); color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container" id="content">
+        <div class="pin-icon">
+            <span class="material-icons-round">place</span>
+        </div>
+        <h1>Konum Paylaşıldı</h1>
+        <p class="location-name" id="loc-name">Yükleniyor...</p>
+        <p class="coords" id="loc-coords">--</p>
+        <p class="subtitle">Konumu açmak için bir harita seçin</p>
+        <div class="map-options" id="map-options"></div>
+        <p class="footer">Konum Paylaş • Beta v1.0</p>
+    </div>
+
+    <script>
+    (() => {
+        const params = new URLSearchParams(window.location.search);
+        const lat = params.get('lat');
+        const lng = params.get('lng');
+        const name = params.get('name') || 'Paylaşılan Konum';
+
+        const locName = document.getElementById('loc-name');
+        const locCoords = document.getElementById('loc-coords');
+        const mapOptions = document.getElementById('map-options');
+
+        if (!lat || !lng) {
+            document.getElementById('content').innerHTML = `
+                <div class="pin-icon"><span class="material-icons-round">error_outline</span></div>
+                <h1>Konum Bulunamadı</h1>
+                <p class="location-name">Geçersiz konum bağlantısı</p>
+            `;
+            return;
+        }
+
+        locName.textContent = decodeURIComponent(name);
+        locCoords.textContent = `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+
+        const googleUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        const appleUrl = `https://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`;
+        const yandexUrl = `https://yandex.com/maps/?pt=${lng},${lat}&z=16&l=map`;
+
+        const options = [
+            { url: googleUrl, label: 'Google Haritalar', desc: 'Google Maps ile aç', cls: 'google', icon: '🗺️' },
+            { url: appleUrl, label: 'Apple Haritalar', desc: 'Apple Maps ile aç', cls: 'apple', icon: '🍎' },
+            { url: yandexUrl, label: 'Yandex Haritalar', desc: 'Yandex Maps ile aç', cls: 'yandex', icon: '🟡' },
+        ];
+
+        mapOptions.innerHTML = options.map(o => `
+            <a href="${o.url}" target="_blank" rel="noopener" class="map-btn">
+                <div class="map-btn-icon ${o.cls}">${o.icon}</div>
+                <div class="map-btn-text">
+                    ${o.label}
+                    <small>${o.desc}</small>
+                </div>
+                <span class="material-icons-round arrow">chevron_right</span>
+            </a>
+        `).join('');
+    })();
+    </script>
+</body>
+</html>

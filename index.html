@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0e1a">
+    <meta name="description" content="Konumunuzu haritadan seçin ve kolayca paylaşın. WhatsApp, QR kod veya paylaşım kodu ile.">
+    <title>Konum Paylaş</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Top Bar -->
+    <header id="top-bar">
+        <button id="btn-menu" class="icon-btn" aria-label="Menü">
+            <span class="material-icons-round">menu</span>
+        </button>
+        <div id="search-wrapper">
+            <span class="material-icons-round search-icon">search</span>
+            <input type="text" id="search-input" placeholder="Konum ara..." autocomplete="off">
+            <button id="btn-clear-search" class="icon-btn small hidden" aria-label="Temizle">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <button id="btn-my-location" class="icon-btn" aria-label="Konumum">
+            <span class="material-icons-round">my_location</span>
+        </button>
+    </header>
+
+    <!-- Search Results Dropdown -->
+    <div id="search-results" class="hidden"></div>
+
+    <!-- Onboarding Overlay -->
+    <div id="onboarding" class="onboarding-visible">
+        <div class="onboarding-content">
+            <div class="onboarding-icon pulse">
+                <span class="material-icons-round">touch_app</span>
+            </div>
+            <p>Haritaya dokunarak<br>konum seçin</p>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet -->
+    <div id="bottom-sheet" class="hidden">
+        <div class="sheet-top">
+            <div class="sheet-handle"></div>
+            <button id="btn-close-sheet" class="icon-btn small sheet-close-btn" aria-label="Kapat">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="sheet-content">
+            <div class="location-info">
+                <div class="location-icon">
+                    <span class="material-icons-round">place</span>
+                </div>
+                <div class="location-details">
+                    <h2 id="location-name">Konum Seçilmedi</h2>
+                    <p id="location-coords">--</p>
+                </div>
+            </div>
+            <div class="sheet-actions">
+                <button id="btn-save-pin" class="action-btn save-btn">
+                    <span class="material-icons-round">bookmark_add</span>
+                    <span>Kaydet</span>
+                </button>
+                <button id="btn-share" class="action-btn share-btn">
+                    <span class="material-icons-round">share</span>
+                    <span>Paylaş</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB: Pinned Locations -->
+    <button id="fab-pins" class="fab" aria-label="Kayıtlı Konumlar">
+        <span class="material-icons-round">bookmarks</span>
+        <span class="fab-badge hidden" id="pin-count">0</span>
+    </button>
+
+    <!-- FAB: Enter Code -->
+    <button id="fab-code" class="fab fab-secondary" aria-label="Kod Gir">
+        <span class="material-icons-round">pin</span>
+    </button>
+
+    <!-- Side Menu -->
+    <div id="side-menu-overlay" class="overlay hidden"></div>
+    <nav id="side-menu" class="closed">
+        <div class="menu-header">
+            <div class="menu-logo">
+                <span class="material-icons-round">explore</span>
+            </div>
+            <h3>Konum Paylaş</h3>
+            <span class="menu-version">Beta v1.0</span>
+        </div>
+        <ul class="menu-list">
+            <li>
+                <button id="menu-saved" class="menu-item">
+                    <span class="material-icons-round">bookmarks</span>
+                    <span>Kayıtlı Konumlar</span>
+                </button>
+            </li>
+            <li>
+                <button id="menu-enter-code" class="menu-item">
+                    <span class="material-icons-round">pin</span>
+                    <span>Kod ile Konum Bul</span>
+                    <span class="beta-tag">BETA</span>
+                </button>
+            </li>
+            <li>
+                <button id="menu-about" class="menu-item">
+                    <span class="material-icons-round">info</span>
+                    <span>Hakkında</span>
+                </button>
+            </li>
+        </ul>
+        <div class="menu-footer">
+            <p>© 2026 Konum Paylaş</p>
+        </div>
+    </nav>
+
+    <!-- Share Modal -->
+    <div id="share-modal-overlay" class="overlay hidden"></div>
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Konumu Paylaş</h3>
+            <button class="icon-btn modal-close" id="btn-close-share">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="share-location-preview">
+                <span class="material-icons-round">place</span>
+                <span id="share-preview-name">Konum</span>
+            </div>
+
+            <div class="share-options">
+                <!-- WhatsApp -->
+                <button class="share-option" id="share-whatsapp">
+                    <div class="share-option-icon whatsapp">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                    </div>
+                    <div class="share-option-text">
+                        <span class="share-option-title">WhatsApp</span>
+                        <span class="share-option-desc">Mesaj ile gönder</span>
+                    </div>
+                    <span class="material-icons-round share-arrow">chevron_right</span>
+                </button>
+
+                <!-- QR Code -->
+                <button class="share-option" id="share-qr">
+                    <div class="share-option-icon qr">
+                        <span class="material-icons-round">qr_code_2</span>
+                    </div>
+                    <div class="share-option-text">
+                        <span class="share-option-title">QR Kod</span>
+                        <span class="share-option-desc">QR okutarak paylaş</span>
+                    </div>
+                    <span class="material-icons-round share-arrow">chevron_right</span>
+                </button>
+
+                <!-- 6-Digit Code -->
+                <button class="share-option" id="share-code">
+                    <div class="share-option-icon code">
+                        <span class="material-icons-round">pin</span>
+                    </div>
+                    <div class="share-option-text">
+                        <span class="share-option-title">Paylaşım Kodu</span>
+                        <span class="share-option-desc">6 haneli kod ile paylaş</span>
+                    </div>
+                    <span class="beta-tag">BETA</span>
+                    <span class="material-icons-round share-arrow">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qr-modal-overlay" class="overlay hidden"></div>
+    <div id="qr-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>QR Kod</h3>
+            <button class="icon-btn modal-close" id="btn-close-qr">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <div id="qr-canvas-wrapper">
+                <div id="qr-container"></div>
+            </div>
+            <p class="qr-hint">Bu QR kodu okutarak konuma ulaşabilirsiniz</p>
+            <p class="qr-hint" style="font-size:12px;margin-top:-8px;">📍 Google, Apple veya Yandex Haritalar'da açılır</p>
+            <button id="btn-download-qr" class="primary-btn">
+                <span class="material-icons-round">download</span>
+                <span>QR Kodu İndir</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Code Share Modal -->
+    <div id="code-modal-overlay" class="overlay hidden"></div>
+    <div id="code-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Paylaşım Kodu</h3>
+            <button class="icon-btn modal-close" id="btn-close-code">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <div class="code-display" id="generated-code">
+                <span>-</span><span>-</span><span>-</span><span>-</span><span>-</span><span>-</span>
+            </div>
+            <p class="code-hint">Bu kodu paylaşarak konumunuzu gönderin</p>
+            <button id="btn-copy-code" class="primary-btn">
+                <span class="material-icons-round">content_copy</span>
+                <span>Kodu Kopyala</span>
+            </button>
+            <div class="beta-notice">
+                <span class="material-icons-round">science</span>
+                <p>Bu özellik beta sürümündedir. Şu anda kodlar yalnızca bu cihazda geçerlidir.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enter Code Modal -->
+    <div id="enter-code-modal-overlay" class="overlay hidden"></div>
+    <div id="enter-code-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Kod ile Konum Bul</h3>
+            <button class="icon-btn modal-close" id="btn-close-enter-code">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <p class="enter-code-desc">Paylaşım kodunu girerek konuma ulaşın</p>
+            <div class="code-input-wrapper">
+                <input type="text" maxlength="1" class="code-digit" data-index="0" inputmode="numeric" pattern="[0-9]">
+                <input type="text" maxlength="1" class="code-digit" data-index="1" inputmode="numeric" pattern="[0-9]">
+                <input type="text" maxlength="1" class="code-digit" data-index="2" inputmode="numeric" pattern="[0-9]">
+                <input type="text" maxlength="1" class="code-digit" data-index="3" inputmode="numeric" pattern="[0-9]">
+                <input type="text" maxlength="1" class="code-digit" data-index="4" inputmode="numeric" pattern="[0-9]">
+                <input type="text" maxlength="1" class="code-digit" data-index="5" inputmode="numeric" pattern="[0-9]">
+            </div>
+            <button id="btn-find-code" class="primary-btn" disabled>
+                <span class="material-icons-round">search</span>
+                <span>Konumu Bul</span>
+            </button>
+            <div id="code-result" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- Saved Locations Modal -->
+    <div id="saved-modal-overlay" class="overlay hidden"></div>
+    <div id="saved-modal" class="modal modal-full hidden">
+        <div class="modal-header">
+            <h3>Kayıtlı Konumlar</h3>
+            <button class="icon-btn modal-close" id="btn-close-saved">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body" id="saved-list-container">
+            <div id="saved-empty" class="empty-state">
+                <span class="material-icons-round">bookmark_border</span>
+                <p>Henüz kayıtlı konumunuz yok</p>
+                <span class="empty-hint">Haritadan bir konum seçip kaydedin</span>
+            </div>
+            <ul id="saved-list" class="hidden"></ul>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal-overlay" class="overlay hidden"></div>
+    <div id="about-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Hakkında</h3>
+            <button class="icon-btn modal-close" id="btn-close-about">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <div class="about-logo">
+                <span class="material-icons-round">explore</span>
+            </div>
+            <h2>Konum Paylaş</h2>
+            <span class="about-version">Beta v1.0</span>
+            <p class="about-desc">Haritadan seçtiğiniz konumları kolayca paylaşın. WhatsApp, QR kod veya paylaşım kodu ile arkadaşlarınıza gönderin.</p>
+            <div class="about-features">
+                <div class="about-feature">
+                    <span class="material-icons-round">touch_app</span>
+                    <span>Haritadan seç</span>
+                </div>
+                <div class="about-feature">
+                    <span class="material-icons-round">share</span>
+                    <span>Kolayca paylaş</span>
+                </div>
+                <div class="about-feature">
+                    <span class="material-icons-round">bookmark</span>
+                    <span>Konumları kaydet</span>
+                </div>
+            </div>
+            <div class="about-credit">
+                <p>Şahin Bölükbaşı tarafından yapılmıştır</p>
+                <a href="https://www.linkedin.com/in/sahinbolukbasi/" target="_blank" rel="noopener" class="linkedin-link">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    <span>LinkedIn Profili</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Name Location Modal -->
+    <div id="name-modal-overlay" class="overlay hidden"></div>
+    <div id="name-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Konumu Adlandır</h3>
+            <button class="icon-btn modal-close" id="btn-close-name">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        <div class="modal-body center">
+            <div class="name-modal-icon">
+                <span class="material-icons-round">edit_location_alt</span>
+            </div>
+            <p class="name-modal-desc">Bu konuma bir ad verin</p>
+            <div class="name-input-wrapper">
+                <input type="text" id="name-input" placeholder="Örn: Ev, İş, Kafe..." maxlength="60">
+            </div>
+            <p class="name-modal-auto" id="name-auto-label">Otomatik: <span id="name-auto-value">--</span></p>
+            <div class="name-modal-actions">
+                <button id="btn-save-with-auto" class="secondary-btn">
+                    <span class="material-icons-round">auto_fix_high</span>
+                    <span>Otomatik Ad</span>
+                </button>
+                <button id="btn-save-with-name" class="primary-btn">
+                    <span class="material-icons-round">check</span>
+                    <span>Kaydet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden">
+        <span class="material-icons-round" id="toast-icon">check_circle</span>
+        <span id="toast-message">İşlem başarılı</span>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- QR Code JS (David Shim qrcodejs) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- App JS -->
+    <script src="sharing.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
