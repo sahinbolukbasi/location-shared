@@ -41,6 +41,7 @@
         menuSaved: $('#menu-saved'),
         menuEnterCode: $('#menu-enter-code'),
         menuAbout: $('#menu-about'),
+        menuLang: $('#menu-lang'),
         // Share modal
         shareModalOverlay: $('#share-modal-overlay'),
         shareModal: $('#share-modal'),
@@ -269,6 +270,82 @@
         dom.onboarding.classList.remove('onboarding-visible');
         dom.onboarding.classList.add('onboarding-hidden');
         setTimeout(() => { dom.onboarding.style.display = 'none'; }, 500);
+    }
+
+    // ========== i18n ==========
+    function applyTranslations() {
+        const t = Lang.t;
+        // data-i18n attributes
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.textContent = t(el.dataset.i18n);
+        });
+        // Search
+        dom.searchInput.placeholder = t('searchPlaceholder');
+        // Onboarding
+        const onP = dom.onboarding.querySelector('p');
+        if (onP) onP.innerHTML = t('onboardingText');
+        // Menu header
+        const menuH3 = document.querySelector('.menu-header h3');
+        if (menuH3) menuH3.textContent = t('appName');
+        // Bottom sheet buttons
+        dom.btnSavePin.querySelector('span:last-child').textContent =
+            dom.btnSavePin.classList.contains('saved') ? t('saved') : t('save');
+        dom.btnShare.querySelector('span:last-child').textContent = t('share');
+        dom.btnNavigate.querySelector('span:last-child').textContent = t('navigate');
+        // Share modal
+        document.querySelector('#share-modal .modal-header h3').textContent = t('shareTitle');
+        document.querySelector('#share-whatsapp .share-option-title').textContent = t('shareWhatsappTitle');
+        document.querySelector('#share-whatsapp .share-option-desc').textContent = t('shareWhatsappDesc');
+        document.querySelector('#share-qr .share-option-title').textContent = t('shareQRTitle');
+        document.querySelector('#share-qr .share-option-desc').textContent = t('shareQRDesc');
+        document.querySelector('#share-code .share-option-title').textContent = t('shareCodeTitle');
+        document.querySelector('#share-code .share-option-desc').textContent = t('shareCodeDesc');
+        // QR modal
+        document.querySelector('#qr-modal .modal-header h3').textContent = t('qrTitle');
+        const qrHints = document.querySelectorAll('.qr-hint');
+        if (qrHints[0]) qrHints[0].textContent = t('qrHint');
+        if (qrHints[1]) qrHints[1].textContent = t('qrHint2');
+        dom.btnDownloadQR.querySelector('span:last-child').textContent = t('qrDownload');
+        // Code modal
+        document.querySelector('#code-modal .modal-header h3').textContent = t('codeTitle');
+        const codeHint = document.querySelector('.code-hint');
+        if (codeHint) codeHint.textContent = t('codeHint');
+        dom.btnCopyCode.querySelector('span:last-child').textContent = t('codeCopy');
+        const betaNotice = document.querySelector('.beta-notice p');
+        if (betaNotice) betaNotice.textContent = t('codeBetaNotice');
+        // Enter code modal
+        document.querySelector('#enter-code-modal .modal-header h3').textContent = t('enterCodeTitle');
+        const enterDesc = document.querySelector('.enter-code-desc');
+        if (enterDesc) enterDesc.textContent = t('enterCodeDesc');
+        dom.btnFindCode.querySelector('span:last-child').textContent = t('findCode');
+        // Saved modal
+        document.querySelector('#saved-modal .modal-header h3').textContent = t('savedTitle');
+        const emptyP = dom.savedEmpty.querySelector('p');
+        const emptyHint = dom.savedEmpty.querySelector('.empty-hint');
+        if (emptyP) emptyP.textContent = t('savedEmpty');
+        if (emptyHint) emptyHint.textContent = t('savedEmptyHint');
+        // Name modal
+        document.querySelector('#name-modal .modal-header h3').textContent = t('nameTitle');
+        document.getElementById('name-modal-desc').textContent = t('nameDesc');
+        dom.nameInput.placeholder = t('namePlaceholder');
+        dom.noteInput.placeholder = t('notePlaceholder');
+        document.getElementById('name-auto-label').firstChild.textContent = t('autoLabel') + ': ';
+        dom.btnSaveWithAuto.querySelector('span:last-child').textContent = t('autoName');
+        dom.btnSaveWithName.querySelector('span:last-child').textContent = t('save');
+        // Edit modal
+        document.querySelector('#edit-modal .modal-header h3').textContent = t('editTitle');
+        dom.editNameInput.placeholder = t('editNamePlaceholder');
+        dom.editNoteInput.placeholder = t('editNotePlaceholder');
+        dom.btnSaveEdit.querySelector('span:last-child').textContent = t('update');
+        // About modal
+        document.querySelector('#about-modal .modal-header h3').textContent = t('aboutTitle');
+        document.querySelector('.about-desc').textContent = t('aboutDesc');
+        const features = document.querySelectorAll('.about-feature span:last-child');
+        if (features[0]) features[0].textContent = t('aboutFeature1');
+        if (features[1]) features[1].textContent = t('aboutFeature2');
+        if (features[2]) features[2].textContent = t('aboutFeature3');
+        document.querySelector('.about-credit p').textContent = t('aboutCredit');
+        document.querySelector('.linkedin-link span').textContent = t('linkedinProfile');
     }
 
     // ========== SAVE PIN (with naming) ==========
@@ -756,6 +833,12 @@
             closeSideMenu();
             setTimeout(() => openModal(dom.aboutModalOverlay, dom.aboutModal), 350);
         });
+        dom.menuLang.addEventListener('click', () => {
+            Lang.toggle();
+            applyTranslations();
+            closeSideMenu();
+            showToast(Lang.getLang() === 'en' ? 'Language: English' : 'Dil: Türkçe', 'translate');
+        });
 
         // Bottom sheet actions
         dom.btnSavePin.addEventListener('click', handleSavePin);
@@ -856,6 +939,7 @@
     function init() {
         initMap();
         bindEvents();
+        applyTranslations();
     }
 
     // Start on DOM ready

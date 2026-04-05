@@ -114,20 +114,51 @@
 
     <script>
     (() => {
+        // i18n for open page
+        const savedLang = localStorage.getItem('app_lang');
+        const lang = savedLang || (navigator.language.startsWith('tr') ? 'tr' : 'en');
+        const i18n = {
+            tr: {
+                title: 'Konum Paylaşıldı', subtitle: 'Konumu açmak için bir harita seçin',
+                google: 'Google Haritalar', googleD: 'Google Maps ile aç',
+                apple: 'Apple Haritalar', appleD: 'Apple Maps ile aç',
+                yandex: 'Yandex Haritalar', yandexD: 'Yandex Maps ile aç',
+                home: 'Konum Paylaş Uygulamasını Aç', notFound: 'Konum Bulunamadı', invalid: 'Geçersiz konum bağlantısı',
+                footer: 'Konum Paylaş • Beta v1.0', shared: 'Paylaşılan Konum'
+            },
+            en: {
+                title: 'Location Shared', subtitle: 'Choose a map to open the location',
+                google: 'Google Maps', googleD: 'Open with Google Maps',
+                apple: 'Apple Maps', appleD: 'Open with Apple Maps',
+                yandex: 'Yandex Maps', yandexD: 'Open with Yandex Maps',
+                home: 'Open Share Location App', notFound: 'Location Not Found', invalid: 'Invalid location link',
+                footer: 'Share Location • Beta v1.0', shared: 'Shared Location'
+            }
+        };
+        const t = i18n[lang] || i18n.tr;
+
         const params = new URLSearchParams(window.location.search);
         const lat = params.get('lat');
         const lng = params.get('lng');
-        const name = params.get('name') || 'Paylaşılan Konum';
+        const name = params.get('name') || t.shared;
 
         const locName = document.getElementById('loc-name');
         const locCoords = document.getElementById('loc-coords');
         const mapOptions = document.getElementById('map-options');
 
+        // Apply translations
+        document.querySelector('h1').textContent = t.title;
+        document.querySelector('.subtitle').textContent = t.subtitle;
+        document.querySelector('#home-link span:last-child').textContent = t.home;
+        document.querySelector('.footer').textContent = t.footer;
+        document.title = t.title;
+
         if (!lat || !lng) {
             document.getElementById('content').innerHTML = `
                 <div class="pin-icon"><span class="material-icons-round">error_outline</span></div>
-                <h1>Konum Bulunamadı</h1>
-                <p class="location-name">Geçersiz konum bağlantısı</p>
+                <h1>${t.notFound}</h1>
+                <p class="location-name">${t.invalid}</p>
+                <a href="./" class="home-link"><span class="material-icons-round">explore</span><span>${t.home}</span></a>
             `;
             return;
         }
@@ -140,9 +171,9 @@
         const yandexUrl = `https://yandex.com/maps/?pt=${lng},${lat}&z=16&l=map`;
 
         const options = [
-            { url: googleUrl, label: 'Google Haritalar', desc: 'Google Maps ile aç', cls: 'google', icon: '🗺️' },
-            { url: appleUrl, label: 'Apple Haritalar', desc: 'Apple Maps ile aç', cls: 'apple', icon: '🍎' },
-            { url: yandexUrl, label: 'Yandex Haritalar', desc: 'Yandex Maps ile aç', cls: 'yandex', icon: '🟡' },
+            { url: googleUrl, label: t.google, desc: t.googleD, cls: 'google', icon: '🗺️' },
+            { url: appleUrl, label: t.apple, desc: t.appleD, cls: 'apple', icon: '🍎' },
+            { url: yandexUrl, label: t.yandex, desc: t.yandexD, cls: 'yandex', icon: '🟡' },
         ];
 
         mapOptions.innerHTML = options.map(o => `

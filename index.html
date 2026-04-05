@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
 
@@ -119,20 +119,26 @@
             <li>
                 <button id="menu-saved" class="menu-item">
                     <span class="material-icons-round">bookmarks</span>
-                    <span>Kayıtlı Konumlar</span>
+                    <span data-i18n="menuSaved">Kayıtlı Konumlar</span>
                 </button>
             </li>
             <li>
                 <button id="menu-enter-code" class="menu-item">
                     <span class="material-icons-round">pin</span>
-                    <span>Kod ile Konum Bul</span>
+                    <span data-i18n="menuEnterCode">Kod ile Konum Bul</span>
                     <span class="beta-tag">BETA</span>
                 </button>
             </li>
             <li>
                 <button id="menu-about" class="menu-item">
                     <span class="material-icons-round">info</span>
-                    <span>Hakkında</span>
+                    <span data-i18n="menuAbout">Hakkında</span>
+                </button>
+            </li>
+            <li>
+                <button id="menu-lang" class="menu-item">
+                    <span class="material-icons-round">translate</span>
+                    <span data-i18n="menuLanguage">English</span>
                 </button>
             </li>
         </ul>
@@ -403,7 +409,8 @@
     <!-- QR Code JS (David Shim qrcodejs) -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- App JS -->
-    <script src="sharing.js?v=1.2"></script>
-    <script src="app.js?v=1.2"></script>
+    <script src="lang.js?v=1.3"></script>
+    <script src="sharing.js?v=1.3"></script>
+    <script src="app.js?v=1.3"></script>
 </body>
 </html>
