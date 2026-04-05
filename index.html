@@ -9,6 +9,8 @@
     <meta http-equiv="Expires" content="0">
     <meta name="description" content="Konumunuzu haritadan seçin ve kolayca paylaşın. WhatsApp, QR kod veya paylaşım kodu ile.">
     <title>Konum Paylaş</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -135,13 +137,29 @@
                     <span data-i18n="menuAbout">Hakkında</span>
                 </button>
             </li>
-            <li>
-                <button id="menu-lang" class="menu-item">
-                    <span class="material-icons-round">translate</span>
-                    <span data-i18n="menuLanguage">English</span>
-                </button>
-            </li>
         </ul>
+        <div class="menu-toggles">
+            <div class="toggle-row">
+                <div class="toggle-label">
+                    <span class="material-icons-round" id="theme-icon">dark_mode</span>
+                    <span data-i18n="menuTheme" id="theme-label">Karanlık Mod</span>
+                </div>
+                <button id="menu-theme" class="toggle-switch active" aria-label="Tema">
+                    <span class="toggle-knob"></span>
+                </button>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-label">
+                    <span class="material-icons-round">translate</span>
+                    <span id="lang-label">Türkçe</span>
+                </div>
+                <button id="menu-lang" class="lang-switch" aria-label="Dil">
+                    <span class="lang-option" data-lang="tr">TR</span>
+                    <span class="lang-option" data-lang="en">EN</span>
+                    <span class="lang-indicator"></span>
+                </button>
+            </div>
+        </div>
         <div class="menu-footer">
             <p>© 2026 Konum Paylaş</p>
         </div>

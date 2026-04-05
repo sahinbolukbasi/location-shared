@@ -12,6 +12,8 @@
     let selectedLocation = null;
     let searchTimeout = null;
     let isOnboardingVisible = true;
+    let currentTileLayer = null;
+    let isDarkTheme = localStorage.getItem('app_theme') !== 'light';
 
     // ========== DOM REFS ==========
     const $ = (s) => document.querySelector(s);
@@ -42,6 +44,10 @@
         menuEnterCode: $('#menu-enter-code'),
         menuAbout: $('#menu-about'),
         menuLang: $('#menu-lang'),
+        menuTheme: $('#menu-theme'),
+        themeIcon: $('#theme-icon'),
+        themeLabel: $('#theme-label'),
+        langLabel: $('#lang-label'),
         // Share modal
         shareModalOverlay: $('#share-modal-overlay'),
         shareModal: $('#share-modal'),
@@ -110,11 +116,6 @@
             attributionControl: false
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            subdomains: 'abcd'
-        }).addTo(map);
-
         // Attribution in corner
         L.control.attribution({
             position: 'bottomleft',
@@ -122,6 +123,9 @@
         }).addTo(map).addAttribution('© <a href="https://carto.com/">CARTO</a>');
 
         map.on('click', handleMapClick);
+
+        // Apply theme tile
+        applyMapTile();
 
         // Load saved markers
         loadSavedMarkers();
@@ -270,6 +274,56 @@
         dom.onboarding.classList.remove('onboarding-visible');
         dom.onboarding.classList.add('onboarding-hidden');
         setTimeout(() => { dom.onboarding.style.display = 'none'; }, 500);
+    }
+
+    // ========== THEME ==========
+    function applyMapTile() {
+        if (currentTileLayer) map.removeLayer(currentTileLayer);
+        const tileUrl = isDarkTheme
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        currentTileLayer = L.tileLayer(tileUrl, { maxZoom: 19, subdomains: 'abcd' }).addTo(map);
+    }
+
+    function toggleTheme() {
+        isDarkTheme = !isDarkTheme;
+        localStorage.setItem('app_theme', isDarkTheme ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+        document.querySelector('meta[name="theme-color"]').content = isDarkTheme ? '#0a0e1a' : '#f0f4f8';
+        applyMapTile();
+        updateThemeUI();
+    }
+
+    function updateThemeUI() {
+        const t = Lang.t;
+        dom.themeIcon.textContent = isDarkTheme ? 'dark_mode' : 'light_mode';
+        dom.themeLabel.textContent = isDarkTheme ? t('darkMode') : t('lightMode');
+        if (isDarkTheme) {
+            dom.menuTheme.classList.add('active');
+        } else {
+            dom.menuTheme.classList.remove('active');
+        }
+    }
+
+    function initTheme() {
+        document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+        document.querySelector('meta[name="theme-color"]').content = isDarkTheme ? '#0a0e1a' : '#f0f4f8';
+        updateThemeUI();
+    }
+
+    function updateLangUI() {
+        const lang = Lang.getLang();
+        const switchEl = dom.menuLang;
+        dom.langLabel.textContent = lang === 'tr' ? 'T\u00fcrk\u00e7e' : 'English';
+        if (lang === 'en') {
+            switchEl.classList.add('en');
+        } else {
+            switchEl.classList.remove('en');
+        }
+        // Active class on options
+        switchEl.querySelectorAll('.lang-option').forEach(opt => {
+            opt.classList.toggle('active', opt.dataset.lang === lang);
+        });
     }
 
     // ========== i18n ==========
@@ -836,8 +890,11 @@
         dom.menuLang.addEventListener('click', () => {
             Lang.toggle();
             applyTranslations();
-            closeSideMenu();
-            showToast(Lang.getLang() === 'en' ? 'Language: English' : 'Dil: Türkçe', 'translate');
+            updateLangUI();
+            updateThemeUI();
+        });
+        dom.menuTheme.addEventListener('click', () => {
+            toggleTheme();
         });
 
         // Bottom sheet actions
@@ -937,9 +994,11 @@
 
     // ========== INIT ==========
     function init() {
+        initTheme();
         initMap();
         bindEvents();
         applyTranslations();
+        updateLangUI();
     }
 
     // Start on DOM ready
