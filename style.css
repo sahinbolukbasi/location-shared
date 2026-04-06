@@ -957,6 +957,15 @@ ul { list-style: none; }
     flex-shrink: 0;
 }
 
+.share-option-icon.link-share {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(8, 145, 178, 0.15));
+    color: var(--accent);
+}
+
+.share-option-icon.link-share .material-icons-round {
+    font-size: 26px;
+}
+
 .share-option-icon.whatsapp {
     background: rgba(37, 211, 102, 0.15);
     color: var(--whatsapp);

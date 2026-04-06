@@ -53,6 +53,7 @@
         shareModal: $('#share-modal'),
         btnCloseShare: $('#btn-close-share'),
         sharePreviewName: $('#share-preview-name'),
+        shareLink: $('#share-link'),
         shareWhatsapp: $('#share-whatsapp'),
         shareQR: $('#share-qr'),
         shareCode: $('#share-code'),
@@ -348,6 +349,8 @@
         dom.btnNavigate.querySelector('span:last-child').textContent = t('navigate');
         // Share modal
         document.querySelector('#share-modal .modal-header h3').textContent = t('shareTitle');
+        document.querySelector('#share-link .share-option-title').textContent = t('shareLinkTitle');
+        document.querySelector('#share-link .share-option-desc').textContent = t('shareLinkDesc');
         document.querySelector('#share-whatsapp .share-option-title').textContent = t('shareWhatsappTitle');
         document.querySelector('#share-whatsapp .share-option-desc').textContent = t('shareWhatsappDesc');
         document.querySelector('#share-qr .share-option-title').textContent = t('shareQRTitle');
@@ -569,6 +572,33 @@
         if (!selectedLocation) return;
         dom.sharePreviewName.textContent = selectedLocation.name || 'Konum';
         openModal(dom.shareModalOverlay, dom.shareModal);
+    }
+
+    function handleShareLink() {
+        if (!selectedLocation) return;
+        const { lat, lng, name } = selectedLocation;
+        const openUrl = Sharing.getShareUrl(lat, lng, name);
+        const shareText = `📍 ${name || 'Konum'}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: shareText,
+                text: shareText,
+                url: openUrl
+            }).then(() => {
+                closeModal(dom.shareModalOverlay, dom.shareModal);
+            }).catch(() => {
+                // User cancelled or error — do nothing
+            });
+        } else {
+            navigator.clipboard.writeText(openUrl).then(() => {
+                showToast(Lang.t('shareLinkCopied'), 'content_copy');
+            }).catch(() => {
+                // Fallback: show the URL in toast
+                showToast(openUrl, 'link');
+            });
+            closeModal(dom.shareModalOverlay, dom.shareModal);
+        }
     }
 
     function handleShareWhatsApp() {
@@ -920,6 +950,7 @@
         // Share modal
         dom.btnCloseShare.addEventListener('click', () => closeModal(dom.shareModalOverlay, dom.shareModal));
         dom.shareModalOverlay.addEventListener('click', () => closeModal(dom.shareModalOverlay, dom.shareModal));
+        dom.shareLink.addEventListener('click', handleShareLink);
         dom.shareWhatsapp.addEventListener('click', handleShareWhatsApp);
         dom.shareQR.addEventListener('click', handleShareQR);
         dom.shareCode.addEventListener('click', handleShareCode);

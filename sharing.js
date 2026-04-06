@@ -12,9 +12,14 @@ const Sharing = (() => {
         return `${loc.origin}${path}`;
     }
 
+    // ========== SHARE URL ==========
+    function getShareUrl(lat, lng, name) {
+        return `${getBaseUrl()}open.html?lat=${lat}&lng=${lng}&name=${encodeURIComponent(name || 'Konum')}`;
+    }
+
     // ========== WHATSAPP ==========
     function shareViaWhatsApp(lat, lng, name) {
-        const openUrl = `${getBaseUrl()}open.html?lat=${lat}&lng=${lng}&name=${encodeURIComponent(name || 'Konum')}`;
+        const openUrl = getShareUrl(lat, lng, name);
         const message = `📍 ${name || 'Konum'}\n\n${openUrl}`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');
@@ -150,6 +155,7 @@ const Sharing = (() => {
     }
 
     return {
+        getShareUrl,
         shareViaWhatsApp,
         generateQRCode,
         downloadQR,
