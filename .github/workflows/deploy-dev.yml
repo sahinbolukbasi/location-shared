@@ -40,12 +40,35 @@ jobs:
           POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD_DEV }}
         run: |
           set -euo pipefail
-          terraform init
-          # Remove stale state entries for renamed/relocated resources (idempotent)
-          terraform state rm module.postgres.azurerm_postgresql_flexible_server.this 2>/dev/null || true
-          terraform state rm module.postgres.azurerm_postgresql_flexible_server_database.app 2>/dev/null || true
-          terraform state rm module.postgres.azurerm_postgresql_flexible_server_firewall_rule.allow_azure 2>/dev/null || true
-          terraform state rm module.aks.azurerm_role_assignment.acr_pull 2>/dev/null || true
+          terraform init -backend-config="key=dev.terraform.tfstate" -reconfigure
+
+          # Sync state: idempotently import resources that exist in Azure but not in state.
+          # Handles the case where state was lost (e.g. after a failed previous run).
+          # These commands are no-ops when resources are already tracked or don't exist yet.
+
+          RG="rg-locationshared-dev"
+          SUB="${ARM_SUBSCRIPTION_ID}"
+          PG="pg-locationshared-dev"
+          PG_BASE="/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG}"
+
+          IMPORT_VARS="-var-file=environments/dev.tfvars -var=postgres_admin_username=${POSTGRES_ADMIN_USERNAME} -var=postgres_admin_password=${POSTGRES_ADMIN_PASSWORD}"
+
+          if az postgres flexible-server show --resource-group "$RG" --name "$PG" --query id -o tsv 2>/dev/null; then
+            terraform import $IMPORT_VARS module.postgres.azurerm_postgresql_flexible_server.this "${PG_BASE}" 2>/dev/null || true
+            terraform import $IMPORT_VARS module.postgres.azurerm_postgresql_flexible_server_database.app "${PG_BASE}/databases/location_shared" 2>/dev/null || true
+            terraform import $IMPORT_VARS module.postgres.azurerm_postgresql_flexible_server_firewall_rule.allow_azure "${PG_BASE}/firewallRules/allow-azure-services" 2>/dev/null || true
+          fi
+
+          ACR_NAME=$(az acr list --resource-group "$RG" --query "[0].name" -o tsv 2>/dev/null || echo "")
+          if [ -n "$ACR_NAME" ]; then
+            RA_ID=$(az role assignment list \
+              --scope "/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.ContainerRegistry/registries/${ACR_NAME}" \
+              --role "AcrPull" --query "[0].id" -o tsv 2>/dev/null || echo "")
+            if [ -n "$RA_ID" ]; then
+              terraform import $IMPORT_VARS module.aks.azurerm_role_assignment.acr_pull "$RA_ID" 2>/dev/null || true
+            fi
+          fi
+
           EXTRA_TF_ARGS=""
           if [ -n "${POSTGRES_ADMIN_USERNAME:-}" ]; then EXTRA_TF_ARGS="$EXTRA_TF_ARGS -var=postgres_admin_username=${POSTGRES_ADMIN_USERNAME}"; fi
           if [ -n "${POSTGRES_ADMIN_PASSWORD:-}" ]; then EXTRA_TF_ARGS="$EXTRA_TF_ARGS -var=postgres_admin_password=${POSTGRES_ADMIN_PASSWORD}"; fi

@@ -16,7 +16,7 @@ terraform {
     resource_group_name  = "rg-locationshared-tfstate"
     storage_account_name = "stlcsharedtfstate"
     container_name       = "tfstate"
-    key                  = "dev.terraform.tfstate"
+    # key is passed at init time via -backend-config="key=<env>.terraform.tfstate"
   }
 }
 
