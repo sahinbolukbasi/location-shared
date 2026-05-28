@@ -10,6 +10,12 @@ resource "azurerm_postgresql_flexible_server" "this" {
   storage_mb             = 32768
   sku_name               = "B_Standard_B1ms"
   tags                   = var.tags
+
+  lifecycle {
+    # Azure assigns an availability zone at creation; it cannot be changed
+    # without enabling HA. Ignore drift so apply never tries to update it.
+    ignore_changes = [zone]
+  }
 }
 
 resource "azurerm_postgresql_flexible_server_database" "app" {
