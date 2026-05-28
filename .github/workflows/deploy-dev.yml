@@ -1,0 +1,117 @@
+name: deploy-dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ENVIRONMENT: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Apply (dev)
+        id: terraform
+        working-directory: infra
+        env:
+          POSTGRES_ADMIN_USERNAME: ${{ secrets.POSTGRES_ADMIN_USERNAME_DEV }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD_DEV }}
+        run: |
+          set -euo pipefail
+          terraform init
+          EXTRA_TF_ARGS=""
+          if [ -n "${POSTGRES_ADMIN_USERNAME:-}" ]; then EXTRA_TF_ARGS="$EXTRA_TF_ARGS -var=postgres_admin_username=${POSTGRES_ADMIN_USERNAME}"; fi
+          if [ -n "${POSTGRES_ADMIN_PASSWORD:-}" ]; then EXTRA_TF_ARGS="$EXTRA_TF_ARGS -var=postgres_admin_password=${POSTGRES_ADMIN_PASSWORD}"; fi
+          terraform apply -auto-approve -var-file=environments/dev.tfvars $EXTRA_TF_ARGS
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
+          echo "aks_name=$(terraform output -raw aks_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+          echo "postgres_fqdn=$(terraform output -raw postgres_fqdn)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push backend image
+        run: |
+          set -euo pipefail
+          az acr login --name ${{ steps.terraform.outputs.acr_name }}
+          docker build -t ${{ steps.terraform.outputs.acr_login_server }}/location-shared-backend:${{ github.sha }} ./backend
+          docker push ${{ steps.terraform.outputs.acr_login_server }}/location-shared-backend:${{ github.sha }}
+
+      - name: Build and push frontend image
+        run: |
+          set -euo pipefail
+          docker build -t ${{ steps.terraform.outputs.acr_login_server }}/location-shared-frontend:${{ github.sha }} ./frontend
+          docker push ${{ steps.terraform.outputs.acr_login_server }}/location-shared-frontend:${{ github.sha }}
+
+      - name: Get AKS context
+        run: |
+          set -euo pipefail
+          az aks get-credentials --resource-group ${{ steps.terraform.outputs.resource_group_name }} --name ${{ steps.terraform.outputs.aks_name }} --overwrite-existing
+
+      - name: Upsert Kubernetes app secrets
+        env:
+          POSTGRES_ADMIN_USERNAME: ${{ secrets.POSTGRES_ADMIN_USERNAME_DEV }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD_DEV }}
+          APP_DB_USER: ${{ secrets.APP_DB_USER_DEV }}
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD_DEV }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY_DEV }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID_DEV }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_DEV }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_DEV }}
+          STRIPE_PRO_PRICE_ID: ${{ secrets.STRIPE_PRO_PRICE_ID_DEV }}
+        run: |
+          set -euo pipefail
+          kubectl apply -f infra/k8s/base/namespace.yaml
+          DB_USER="${APP_DB_USER:-${POSTGRES_ADMIN_USERNAME:-pgadminuser}}"
+          DB_PASSWORD="${APP_DB_PASSWORD:-${POSTGRES_ADMIN_PASSWORD:-}}"
+
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "APP_DB_PASSWORD_DEV veya POSTGRES_ADMIN_PASSWORD_DEV secret'i gerekli." >&2
+            exit 1
+          fi
+
+          DATABASE_URL="postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@${{ steps.terraform.outputs.postgres_fqdn }}:5432/location_shared"
+
+          kubectl create secret generic app-secrets \
+            --namespace location-shared \
+            --from-literal=SECRET_KEY="${SECRET_KEY}" \
+            --from-literal=DATABASE_URL="${DATABASE_URL}" \
+            --from-literal=GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
+            --from-literal=STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}" \
+            --from-literal=STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}" \
+            --from-literal=STRIPE_PRO_PRICE_ID="${STRIPE_PRO_PRICE_ID}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy manifests
+        run: |
+          set -euo pipefail
+          sed -e "s|REPLACE_ACR_LOGIN_SERVER|${{ steps.terraform.outputs.acr_login_server }}|g" -e "s|:latest|:${{ github.sha }}|g" infra/k8s/base/backend-deployment.yaml > /tmp/backend.yaml
+          sed -e "s|REPLACE_ACR_LOGIN_SERVER|${{ steps.terraform.outputs.acr_login_server }}|g" -e "s|:latest|:${{ github.sha }}|g" infra/k8s/base/frontend-deployment.yaml > /tmp/frontend.yaml
+          kubectl apply -f infra/k8s/base/namespace.yaml
+          kubectl apply -f infra/k8s/base/configmap.yaml
+          kubectl apply -f /tmp/backend.yaml
+          kubectl apply -f infra/k8s/base/backend-service.yaml
+          kubectl apply -f /tmp/frontend.yaml
+          kubectl apply -f infra/k8s/base/frontend-service.yaml
+          kubectl apply -f infra/k8s/base/ingress.yaml
+          kubectl apply -f infra/k8s/base/hpa-backend.yaml
+          kubectl apply -f infra/k8s/base/pdb.yaml
+          kubectl rollout status deployment/backend -n location-shared --timeout=180s
+          kubectl rollout status deployment/frontend -n location-shared --timeout=180s

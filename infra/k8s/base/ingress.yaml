@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: location-shared
+  namespace: location-shared
+  annotations:
+    kubernetes.io/ingress.class: webapprouting.kubernetes.azure.com
+spec:
+  rules:
+    - host: location-shared.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - host: api.location-shared.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 80

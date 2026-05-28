@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: location-shared
+data:
+  NEXT_PUBLIC_API_BASE_URL: https://api.location-shared.example.com
+  CORS_ORIGINS: https://location-shared.example.com
+  API_V1_PREFIX: /api/v1
