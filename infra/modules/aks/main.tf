@@ -6,12 +6,11 @@ resource "azurerm_kubernetes_cluster" "this" {
   sku_tier            = "Standard"
 
   default_node_pool {
-    name                 = "system"
-    node_count           = var.node_count
-    vm_size              = var.node_vm_size
-    zones                = ["1", "2", "3"]
-    os_disk_type         = "Ephemeral"
-    os_sku               = "AzureLinux"
+    name                         = "system"
+    node_count                   = 1
+    vm_size                      = "Standard_D2s_v5"
+    os_disk_type                 = "Ephemeral"
+    os_sku                       = "AzureLinux"
     only_critical_addons_enabled = true
   }
 
@@ -33,6 +32,17 @@ resource "azurerm_kubernetes_cluster" "this" {
   local_account_disabled    = true
 
   tags = var.tags
+}
+
+resource "azurerm_kubernetes_cluster_node_pool" "user" {
+  name                  = "user"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
+  node_count            = var.node_count
+  vm_size               = var.node_vm_size
+  os_disk_type          = "Ephemeral"
+  os_sku                = "AzureLinux"
+  mode                  = "User"
+  tags                  = var.tags
 }
 
 resource "azurerm_role_assignment" "acr_pull" {

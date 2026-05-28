@@ -7,7 +7,6 @@ resource "azurerm_postgresql_flexible_server" "this" {
   private_dns_zone_id    = null
   administrator_login    = var.admin_username
   administrator_password = var.admin_password
-  zone                   = "1"
   storage_mb             = 32768
   sku_name               = "B_Standard_B1ms"
   tags                   = var.tags
