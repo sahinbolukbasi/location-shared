@@ -1,5 +1,5 @@
 resource "azurerm_postgresql_flexible_server" "this" {
-  name                   = "psql-${var.project_name}-${var.environment}"
+  name                   = "pg-${var.project_name}-${var.environment}"
   resource_group_name    = var.resource_group_name
   location               = "northeurope"
   version                = "16"
