@@ -3,13 +3,13 @@ resource "azurerm_kubernetes_cluster" "this" {
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = "${var.project_name}-${var.environment}"
-  sku_tier            = "Standard"
+  sku_tier            = "Free"
 
   default_node_pool {
     name                         = "system"
     node_count                   = 1
     vm_size                      = "Standard_D2s_v5"
-    os_disk_type                 = "Ephemeral"
+    os_disk_type                 = "Managed"
     os_sku                       = "AzureLinux"
     only_critical_addons_enabled = true
   }
@@ -29,7 +29,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 
   workload_identity_enabled = true
   oidc_issuer_enabled       = true
-  local_account_disabled    = true
+  local_account_disabled    = false
 
   tags = var.tags
 }
@@ -39,7 +39,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
   node_count            = var.node_count
   vm_size               = var.node_vm_size
-  os_disk_type          = "Ephemeral"
+  os_disk_type          = "Managed"
   os_sku                = "AzureLinux"
   mode                  = "User"
   tags                  = var.tags

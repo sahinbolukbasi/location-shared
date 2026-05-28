@@ -1,7 +1,7 @@
 resource "azurerm_postgresql_flexible_server" "this" {
   name                   = "psql-${var.project_name}-${var.environment}"
   resource_group_name    = var.resource_group_name
-  location               = var.location
+  location               = "northeurope"
   version                = "16"
   delegated_subnet_id    = null
   private_dns_zone_id    = null
