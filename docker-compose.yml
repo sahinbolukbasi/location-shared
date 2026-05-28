@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: location_shared
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/location_shared
+      SECRET_KEY: local-dev-secret
+      CORS_ORIGINS: http://localhost:3000
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pg_data:

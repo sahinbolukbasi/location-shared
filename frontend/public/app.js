@@ -42,10 +42,12 @@
         sideMenuOverlay: $('#side-menu-overlay'),
         sideMenu: $('#side-menu'),
         menuLogin: $('#menu-login'),
+        menuLoginItem: $('#menu-login-item'),
         menuProfile: $('#menu-profile'),
         menuSaved: $('#menu-saved'),
         menuEnterCode: $('#menu-enter-code'),
         menuAbout: $('#menu-about'),
+        menuAboutItem: $('#menu-about-item'),
         menuFeaturesTitle: $('#menu-features-title'),
         menuFeaturesList: $('#menu-features-list'),
         menuAuthSubtitle: $('#menu-auth-subtitle'),
@@ -441,6 +443,17 @@
         if (dom.sideMenu) {
             dom.sideMenu.classList.toggle('menu-auth-member', authenticated);
             dom.sideMenu.classList.toggle('menu-auth-guest', !authenticated);
+        }
+
+        if (dom.menuAboutItem) {
+            dom.menuAboutItem.classList.remove('hidden');
+        }
+
+        if (dom.fabPins) {
+            dom.fabPins.classList.toggle('hidden', !authenticated);
+            if (!authenticated) {
+                dom.fabPins.classList.remove('sheet-open');
+            }
         }
 
         if (dom.menuAuthSubtitle) {

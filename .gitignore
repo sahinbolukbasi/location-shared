@@ -1,0 +1,31 @@
+# System
+.DS_Store
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/.next/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+
+# Env
+.env
+frontend/.env.local
+backend/.env
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.*
+
+# Coverage
+coverage/
+.pytest_cache/
+
+# Misc
+.vscode/settings.json

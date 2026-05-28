@@ -114,31 +114,54 @@
             <div class="menu-logo">
                 <span class="material-icons-round">explore</span>
             </div>
-            <h3>Konum Paylaş</h3>
+            <h3 data-i18n="appName">Konum Paylaş</h3>
+            <p id="menu-auth-subtitle" class="menu-subtitle" data-i18n="menuAuthGuestSubtitle">Giriş yaparak tüm özellikleri açın</p>
             <span class="menu-version">Beta v1.0</span>
         </div>
-        <ul class="menu-list">
-            <li>
-                <button id="menu-saved" class="menu-item">
-                    <span class="material-icons-round">bookmarks</span>
-                    <span data-i18n="menuSaved">Kayıtlı Konumlar</span>
-                </button>
-            </li>
-            <li>
-                <button id="menu-enter-code" class="menu-item">
-                    <span class="material-icons-round">pin</span>
-                    <span data-i18n="menuEnterCode">Kod ile Konum Bul</span>
-                    <span class="beta-tag">BETA</span>
-                </button>
-            </li>
-            <li>
-                <button id="menu-about" class="menu-item">
-                    <span class="material-icons-round">info</span>
-                    <span data-i18n="menuAbout">Hakkında</span>
-                </button>
-            </li>
-        </ul>
-        <div class="menu-toggles">
+        <div class="menu-content">
+            <ul class="menu-list menu-list-primary">
+                <li id="menu-login-item">
+                    <button id="menu-login" class="menu-item menu-item-primary">
+                        <span class="material-icons-round">login</span>
+                        <span data-i18n="menuLogin">Uygulamaya Giriş Yap</span>
+                    </button>
+                </li>
+                <li id="menu-about-item">
+                    <button id="menu-about" class="menu-item menu-item-primary">
+                        <span class="material-icons-round">info</span>
+                        <span data-i18n="menuAbout">Hakkında</span>
+                    </button>
+                </li>
+            </ul>
+
+            <p id="menu-features-title" class="menu-section-title" data-i18n="menuFeatures">Özellikler</p>
+
+            <ul id="menu-features-list" class="menu-list menu-list-features">
+                <li>
+                    <button id="menu-profile" class="menu-item menu-item-feature">
+                        <span class="material-icons-round">account_circle</span>
+                        <span data-i18n="menuProfile">Hesabım</span>
+                    </button>
+                </li>
+                <li>
+                    <button id="menu-saved" class="menu-item menu-item-feature">
+                        <span class="material-icons-round">bookmarks</span>
+                        <span data-i18n="menuSaved">Kayıtlı Konumlar</span>
+                    </button>
+                </li>
+                <li>
+                    <button id="menu-enter-code" class="menu-item menu-item-feature">
+                        <span class="material-icons-round">pin</span>
+                        <span data-i18n="menuEnterCode">Kod ile Konum Bul</span>
+                        <span class="beta-tag">BETA</span>
+                    </button>
+                </li>
+            </ul>
+
+            <p id="menu-lock-note" class="menu-lock-note" data-i18n="menuLockNote">Özellikler giriş sonrası açılır.</p>
+        </div>
+
+        <div id="menu-toggles" class="menu-toggles">
             <div class="toggle-row">
                 <div class="toggle-label">
                     <span class="material-icons-round" id="theme-icon">dark_mode</span>

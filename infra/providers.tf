@@ -11,6 +11,13 @@ terraform {
       version = "~> 3.6"
     }
   }
+
+  backend "azurerm" {
+    resource_group_name  = "rg-locationshared-tfstate"
+    storage_account_name = "stlcsharedtfstate"
+    container_name       = "tfstate"
+    key                  = "dev.terraform.tfstate"
+  }
 }
 
 provider "azurerm" {
