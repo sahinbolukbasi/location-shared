@@ -28,7 +28,9 @@ terraform {
     resource_group_name  = "rg-locationshared-tfstate"
     storage_account_name = "stlcsharedtfstate"
     container_name       = "tfstate"
-    key                  = "dev.terraform.tfstate"
+    # key is passed at init time via -backend-config="key=<env>.terraform.tfstate"
+    # dev  → dev.terraform.tfstate
+    # prod → prod.terraform.tfstate
   }
 }
 ```
@@ -72,6 +74,16 @@ location     = "westeurope"
 
 ```
 observability → keyvault → acr → aks (depends on acr_id) → postgres
+```
+
+```mermaid
+graph LR
+    RG[Resource Group] --> ACR[module.acr]
+    RG --> OBS[module.observability]
+    RG --> KV[module.keyvault]
+    RG --> PG[module.postgres]
+    ACR --> AKS[module.aks]
+    OBS --> AKS
 ```
 
 ---
@@ -134,6 +146,16 @@ storage_mb = 32768          # 32 GB
 ```
 
 > **⚠️ Location Mismatch**: The PostgreSQL server is in `northeurope` while all other resources are in `westeurope`. This is intentional — see [Troubleshooting](./troubleshooting.md#postgresql-locationisofferrestricted).
+
+**Zone drift fix**: PostgreSQL zone assignment can shift after HA failovers. Without the lifecycle block below, `terraform apply` would fail with `"zone can only be changed when exchanged with standby_availability_zone"`:
+
+```hcl
+lifecycle {
+  ignore_changes = [zone]
+}
+```
+
+This block is already present in `infra/modules/postgres/main.tf` and must not be removed.
 
 ### `modules/keyvault` — Azure Key Vault
 

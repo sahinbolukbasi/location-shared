@@ -1,48 +1,73 @@
 # System Architecture
 
-## Component Overview
+> **Status**: Dev ortamı LIVE — 29 Mayıs 2026  
+> Tüm altyapı **Terraform** ile yönetilmekte, tüm deploy süreçleri **GitHub Actions** üzerinden yürütülmektedir.
+
+---
+
+## Genel Mimari
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Internet / Users                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTPS
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  Azure Kubernetes Service (AKS)                 │
-│                    aks-locationshared-dev                       │
-│  westeurope  │  SKU: Free  │  Azure CNI  │  Azure Network Policy│
-│                                                                 │
-│  ┌─────────────────────┐   ┌─────────────────────────────────┐  │
-│  │  System Node Pool   │   │      User Node Pool             │  │
-│  │  1× Standard_D2s_v5 │   │      2× Standard_D4s_v5         │  │
-│  │  OS: AzureLinux     │   │      OS: AzureLinux             │  │
-│  │  (critical only)    │   │      (application workloads)    │  │
-│  └─────────────────────┘   └─────────────────────────────────┘  │
-│                                                                 │
-│  Namespace: location-shared                                     │
-│  ┌──────────────────┐   ┌───────────────────┐                  │
-│  │  frontend (Next) │   │  backend (FastAPI) │                  │
-│  │  Deployment      │   │  Deployment        │                  │
-│  │  replicas: 2     │   │  replicas: 2       │                  │
-│  │  HPA: max 10     │   │  HPA: max 10       │                  │
-│  └────────┬─────────┘   └─────────┬──────────┘                  │
-│           │  ClusterIP             │ ClusterIP                  │
-│           └─────────┬─────────────┘                            │
-│                     │ nginx Ingress                             │
-└─────────────────────┼───────────────────────────────────────────┘
-                      │
-         ┌────────────┴──────────────┐
-         │                           │
-         ▼                           ▼
-┌────────────────┐        ┌─────────────────────────────────────┐
-│ Azure Container│        │  PostgreSQL 16 Flexible Server      │
-│ Registry (ACR) │        │  pg-locationshared-dev              │
-│ westeurope     │        │  northeurope (SKU: B_Standard_B1ms) │
-│ locationshared │        │  DB: location_shared                │
-│ devqx4nh       │        │  Storage: 32 GB                     │
-└────────────────┘        └─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Internet / Users                            │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ HTTP  (sslip.io wildcard DNS)
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  Azure Load Balancer  (IP: 4.231.68.185)                             │
+│  Port 80 → NodePort 32024  /  Port 443 → NodePort 31352              │
+│  Health Probe: GET /healthz on port 32024  (HTTP 200 = healthy)      │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────────────┐
+│              Azure Kubernetes Service  aks-locationshared-dev         │
+│              westeurope · SKU: Free · Azure CNI · Azure Network Policy│
+│                                                                       │
+│  ┌──────────────────────┐    ┌───────────────────────────────────┐   │
+│  │  System Node Pool    │    │       User Node Pool              │   │
+│  │  1× Standard_D2s_v5  │    │       2× Standard_D4s_v5          │   │
+│  │  OS: AzureLinux      │    │       OS: AzureLinux              │   │
+│  │  (system pods only)  │    │       (application workloads)     │   │
+│  └──────────────────────┘    └───────────────────────────────────┘   │
+│                                                                       │
+│  Namespace: ingress-nginx                                             │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  nginx Ingress Controller (Helm)                               │  │
+│  │  ingressClassName: nginx                                        │  │
+│  │  annotation: azure-load-balancer-health-probe-request-path=/healthz│
+│  └──────────────────────────────┬─────────────────────────────────┘  │
+│                                  │ Routing by Host header             │
+│  Namespace: location-shared      │                                    │
+│  ┌──────────────────────────┐   ┌┴─────────────────────────────────┐ │
+│  │  frontend (Next.js)      │   │  backend (FastAPI)               │ │
+│  │  Deployment · 2 replicas │   │  Deployment · 2 replicas         │ │
+│  │  HPA: 2–10 replicas      │   │  HPA: 2–10 replicas              │ │
+│  │  Service: ClusterIP :80  │   │  Service: ClusterIP :80          │ │
+│  └──────────────────────────┘   └──────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+          │                                      │
+          ▼                                      ▼
+┌──────────────────────┐           ┌────────────────────────────────────┐
+│  Azure Container     │           │  PostgreSQL 16 Flexible Server     │
+│  Registry (ACR)      │           │  pg-locationshared-dev             │
+│  westeurope          │           │  northeurope · B_Standard_B1ms     │
+│  locationshareddev…  │           │  DB: location_shared · 32 GB       │
+│  (Basic SKU)         │           │  lifecycle: ignore zone drift       │
+└──────────────────────┘           └────────────────────────────────────┘
 ```
+
+---
+
+## Public Erişim URLs (Dev)
+
+| Servis | URL |
+|---|---|
+| **Frontend** | http://location-shared.4.231.68.185.sslip.io |
+| **API** | http://api.location-shared.4.231.68.185.sslip.io |
+| API Health | http://api.location-shared.4.231.68.185.sslip.io/health |
+
+> `sslip.io` özel DNS kurulumu gerektirmez. Hostname içindeki IP adresini otomatik çözümler.  
+> Gerçek domain bağlandığında ingress `host` alanları ve ConfigMap güncellenmelidir.
 
 ## Azure Resource Group: `rg-locationshared-dev`
 

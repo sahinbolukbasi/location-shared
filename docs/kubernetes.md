@@ -87,22 +87,79 @@ envFrom:
 
 ## Ingress
 
-Traffic enters the cluster through an nginx Ingress controller:
+Traffic enters the cluster through the nginx Ingress Controller installed via Helm in the `ingress-nginx` namespace.
+
+### Routing Architecture
 
 ```
-Internet
-  └─► nginx Ingress Controller (LoadBalancer Service)
-        ├─► /api/* → backend Service (FastAPI, port 8000)
-        └─► /*     → frontend Service (Next.js, port 3000)
+Internet (sslip.io DNS)
+  └─► Azure Load Balancer (IP: 4.231.68.185)
+        └─► nginx Ingress Controller (namespace: ingress-nginx)
+              ├─► host: location-shared.4.231.68.185.sslip.io
+              │     └─► frontend Service (ClusterIP :80)
+              └─► host: api.location-shared.4.231.68.185.sslip.io
+                    └─► backend Service (ClusterIP :80)
 ```
 
-> **⚠️ Note**: The nginx Ingress Controller is **not installed by Terraform**. It must be installed separately:
-> ```bash
-> helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-> helm install ingress-nginx ingress-nginx/ingress-nginx \
->   --namespace ingress-nginx --create-namespace
-> ```
-> If the controller is missing, the Ingress resource will be created but traffic routing won't work.
+### Ingress Manifest (`infra/k8s/base/ingress.yaml`)
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: location-shared
+  namespace: location-shared
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: location-shared.4.231.68.185.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - host: api.location-shared.4.231.68.185.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 80
+```
+
+### nginx Ingress Controller — Kurulum (Manuel)
+
+> **⚠️ Önemli**: nginx Ingress Controller Terraform tarafından yönetilmez. Cluster yeniden oluşturulursa aşağıdaki komutlar elle çalıştırılmalıdır.
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
+```
+
+**Kritik annotation**: Azure Load Balancer sağlık probu varsayılan olarak `/` path'ini kontrol eder. nginx `/` için 404 döner ve LB backend'leri sağlıksız işaretler. `/healthz` annotation'ı ile probe nginx'in doğru endpoint'ini kullanır (HTTP 200).
+
+Mevcut kurulu versiyonu upgrade etmek gerekirse (örn. annotation eksikse):
+
+```bash
+helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
+  --no-hooks
+```
+
+> `--no-hooks`: Pre-upgrade admission webhook job'u varsa kullanılır (hook hatası durumunda bypass eder).
 
 ---
 

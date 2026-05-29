@@ -8,9 +8,11 @@ Complete walkthrough of the automated deployment pipeline.
 
 | Workflow | File | Trigger | Purpose |
 |---|---|---|---|
-| `deploy-dev` | `.github/workflows/deploy-dev.yml` | push to `main` | Full deploy to dev |
-| `deploy-prod` | `.github/workflows/deploy-prod.yml` | push to `prod` | Full deploy to production |
+| `deploy-dev` | `.github/workflows/deploy-dev.yml` | push to `main` + manual dispatch | Full deploy to dev ✅ |
+| `deploy-prod` | `.github/workflows/deploy-prod.yml` | manual dispatch only | Full deploy to production |
 | `ci` | `.github/workflows/ci.yml` | push to any branch | Lint / test |
+
+> **Node.js 24**: Both deploy workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` to suppress deprecation warnings from actions that still bundle Node.js 20.
 
 ---
 
@@ -99,15 +101,25 @@ The `ARM_*` environment variables tell the AzureRM Terraform provider to authent
 **`run` script breakdown:**
 
 ```bash
-terraform init
-# ↑ Downloads providers, connects to Azure Blob remote backend
+terraform init -backend-config="key=dev.terraform.tfstate" -reconfigure
+# ↑ Downloads providers, connects to Azure Blob remote backend (env-specific key)
 
-# Clean stale state entries to avoid location-change conflicts
-terraform state rm module.postgres.azurerm_postgresql_flexible_server.this 2>/dev/null || true
-terraform state rm module.postgres.azurerm_postgresql_flexible_server_database.app 2>/dev/null || true
-terraform state rm module.postgres.azurerm_postgresql_flexible_server_firewall_rule.allow_azure 2>/dev/null || true
-terraform state rm module.aks.azurerm_role_assignment.acr_pull 2>/dev/null || true
-# ↑ Idempotent cleanup — fails silently if resources not in state
+# IDEMPOTENT STATE SYNC — import if resource exists in Azure but not in Terraform state.
+# This handles the case where state was lost (e.g. after a state backend reset).
+# All imports use "|| true" so they silently skip if already imported or resource doesn't exist yet.
+
+if az postgres flexible-server show --resource-group "$RG" --name "$PG" ...; then
+  terraform import ... module.postgres.azurerm_postgresql_flexible_server.this  || true
+  terraform import ... module.postgres.azurerm_postgresql_flexible_server_database.app  || true
+  terraform import ... module.postgres.azurerm_postgresql_flexible_server_firewall_rule.allow_azure  || true
+fi
+
+ACR_NAME=$(az acr list --resource-group "$RG" ...)
+if [ -n "$ACR_NAME" ]; then
+  RA_ID=$(az role assignment list --role "AcrPull" ...)
+  terraform import ... module.aks.azurerm_role_assignment.acr_pull "$RA_ID"  || true
+fi
+# ↑ 4 resources protected against state drift; new resources are created normally
 
 terraform apply -auto-approve -var-file=environments/dev.tfvars \
   -var=postgres_admin_username=... -var=postgres_admin_password=...
@@ -118,6 +130,9 @@ echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OU
 echo "aks_name=$(terraform output -raw aks_name)" >> "$GITHUB_OUTPUT"
 # ... etc
 ```
+
+> **Why import instead of `terraform state rm`?**  
+> Previous versions used `state rm` to remove resources before re-applying. This caused resource recreation on every run. The current approach uses **idempotent imports**: resources are added to state if missing, leaving existing state untouched.
 
 ---
 
@@ -254,3 +269,57 @@ gh workflow run deploy-dev.yml --repo sahinbolukbasi/location-shared
 ```
 
 All steps are **idempotent**: Terraform skips already-provisioned resources, Docker images are overwritten at the same SHA tag, and `kubectl apply` is a no-op for unchanged manifests.
+
+---
+
+## CI/CD Flow Diagram (Mermaid)
+
+```mermaid
+flowchart TD
+    A[git push to main] --> B[GitHub Actions: deploy-dev]
+    B --> C[Azure Login OIDC]
+    C --> D[Terraform Init\nkey=dev.terraform.tfstate]
+    D --> E{Resources in\nAzure state?}
+    E -- No --> F[terraform import\nidempotent 4 resources]
+    E -- Yes --> G[terraform apply\ndev.tfvars]
+    F --> G
+    G --> H[Build & Push\nbackend image to ACR]
+    H --> I[Build & Push\nfrontend image to ACR]
+    I --> J[az aks get-credentials]
+    J --> K[kubectl upsert\napp-secrets]
+    K --> L[kubectl apply\nall K8s manifests]
+    L --> M[kubectl rollout status\ntimeout 180s]
+    M --> N[Deploy COMPLETE ✅]
+
+    style N fill:#4CAF50,color:#fff
+```
+
+---
+
+## Gerekli GitHub Secrets
+
+### Ortak (Her İki Env)
+
+| Secret | Açıklama |
+|---|---|
+| `AZURE_CLIENT_ID` | OIDC App Registration Client ID |
+| `AZURE_TENANT_ID` | Azure AD Tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure Subscription ID |
+
+### Dev Ortamı
+
+| Secret | Açıklama |
+|---|---|
+| `POSTGRES_ADMIN_USERNAME_DEV` | PostgreSQL admin kullanıcı adı |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | PostgreSQL admin parolası |
+| `APP_DB_USER_DEV` | Uygulama DB kullanıcısı (opsiyonel, admin fallback) |
+| `APP_DB_PASSWORD_DEV` | Uygulama DB parolası |
+| `SECRET_KEY_DEV` | JWT signing key |
+| `GOOGLE_CLIENT_ID_DEV` | Google OAuth2 Client ID |
+| `STRIPE_SECRET_KEY_DEV` | Stripe secret key |
+| `STRIPE_WEBHOOK_SECRET_DEV` | Stripe webhook imzalama secret'ı |
+| `STRIPE_PRO_PRICE_ID_DEV` | Stripe Pro plan price ID |
+
+### Prod Ortamı
+
+Aynı isimlendirme, `_DEV` yerine `_PROD` suffix kullanılır.

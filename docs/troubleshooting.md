@@ -6,13 +6,18 @@ Complete record of all errors encountered during infrastructure setup and CI/CD 
 
 ## Error Index
 
-| # | Error | Component | Run | Fix |
-|---|---|---|---|---|
-| 1 | AZ Zone 1/2 Not Available | AKS, PostgreSQL | Run 1 & 2 | Remove `zones` from all resources |
-| 2 | VMSizeDoesNotSupportEphemeralOS | AKS | Run 2 | `os_disk_type = "Managed"` |
-| 3 | LocationIsOfferRestricted (PostgreSQL) | PostgreSQL | Run 2 | `location = "northeurope"` |
-| 4 | AuthorizationFailed on role assignment | AKS/ACR | Run 3 | Grant SP `User Access Administrator` |
-| 5 | PostgreSQL 409 — name reserved in westeurope | PostgreSQL | Run 3 | Rename `psql-` → `pg-` prefix |
+| # | Error | Component | Fix |
+|---|---|---|---|
+| 1 | AZ Zone 1/2 Not Available | AKS, PostgreSQL | Remove `zones` from all resources |
+| 2 | VMSizeDoesNotSupportEphemeralOS | AKS | `os_disk_type = "Managed"` |
+| 3 | LocationIsOfferRestricted (PostgreSQL) | PostgreSQL | `location = "northeurope"` hardcoded |
+| 4 | AuthorizationFailed on role assignment | AKS/ACR | Grant SP `User Access Administrator` |
+| 5 | PostgreSQL 409 — name reserved in westeurope | PostgreSQL | Rename `psql-` → `pg-` prefix |
+| 6 | PostgreSQL zone drift — `zone can only be changed` | PostgreSQL | `lifecycle { ignore_changes = [zone] }` |
+| 7 | External traffic Connection Reset (Azure LB) | nginx Ingress | Health probe path: `/healthz` annotation |
+| 8 | Helm upgrade fails — pre-upgrade hook job error | nginx Ingress | Use `--no-hooks` flag |
+| 9 | Node.js 20 deprecation warnings in Actions | GitHub Actions | `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` |
+| 10 | Terraform state conflicts after failed runs | Terraform CI | Replace `state rm` with idempotent `import` |
 
 ---
 
@@ -258,4 +263,148 @@ Or add this as a step in `deploy-dev.yml` before `kubectl apply -f infra/k8s/bas
 
 ### Terraform State Drift
 
-Some resources (ACR, Key Vault, Log Analytics, Application Insights) were created in Run 1 (`26605211581`) before that run failed at a later step. If the Terraform state for Run 1 was partially saved, subsequent `terraform apply` runs may encounter drift between state and reality. Terraform should handle this gracefully (`already exists` = update in place or `no-op`), but if drift is detected, use `terraform import` to reconcile.
+Some resources (ACR, Key Vault, Log Analytics, Application Insights) were created before a run failed at a later step. If the Terraform state was partially saved, subsequent `terraform apply` runs may encounter drift. Terraform handles this gracefully (`already exists` = update in place or `no-op`), but if drift is detected, use `terraform import` to reconcile. See the CI pipeline's idempotent import block in `deploy-dev.yml`.
+
+---
+
+## Error 6 — PostgreSQL Zone Drift
+
+### Symptom
+
+```
+Error: updating Flexible Server: Code="InvalidParameterValue"
+Message="zone can only be changed when exchanged with standby_availability_zone"
+```
+
+### Root Cause
+
+Azure may shift the PostgreSQL server's zone assignment after internal maintenance or HA events. When Terraform reads the current state and the zone differs from what was last recorded, `terraform plan` shows a zone change which Azure refuses because HA is not enabled (no standby zone to swap with).
+
+### Fix Applied
+
+Added a `lifecycle` block to `infra/modules/postgres/main.tf`:
+
+```hcl
+resource "azurerm_postgresql_flexible_server" "this" {
+  ...
+  lifecycle {
+    ignore_changes = [zone]
+  }
+}
+```
+
+Terraform will now ignore any zone drift and never attempt to change the zone. **Commit**: `9d2e5ee`
+
+---
+
+## Error 7 — External Traffic Connection Reset (Azure LB Health Probe)
+
+### Symptom
+
+App reachable from within the cluster (`kubectl port-forward`) but external traffic through the Azure Load Balancer results in `ERR_CONNECTION_RESET` or `504 Gateway Timeout`.
+
+### Root Cause
+
+Azure Load Balancer health probes were hitting nginx on port 32024 with path `/` (the default). nginx returns `404 Not Found` for path `/` when no matching Ingress rule exists for that direct IP access. The LB interpreted 404 as unhealthy and marked all backends as down, dropping all external traffic.
+
+### Fix Applied
+
+Set the health probe path to `/healthz` via a Helm annotation during nginx ingress controller installation:
+
+```bash
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
+```
+
+nginx responds with `HTTP 200` at `/healthz`, and the LB marks backends as healthy, allowing traffic through. **Commit**: `64cfc9c`
+
+---
+
+## Error 8 — Helm Upgrade Fails with Pre-upgrade Hook Job Error
+
+### Symptom
+
+```
+Error: UPGRADE FAILED: pre-upgrade hooks failed: ... job failed: BackoffLimitExceeded
+```
+
+### Root Cause
+
+The nginx ingress Helm chart includes pre-upgrade admission webhook validation jobs. If a previous job object still exists in a failed state, Helm's pre-upgrade hook fails before the upgrade begins.
+
+### Fix Applied
+
+Use `--no-hooks` to bypass the pre/post hook jobs:
+
+```bash
+helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --set controller.service.annotations... \
+  --no-hooks
+```
+
+---
+
+## Error 9 — Node.js 20 Deprecation Warnings in GitHub Actions
+
+### Symptom
+
+```
+Node.js 20 actions are deprecated. Please update the following actions
+to use Node.js 20: ...
+```
+
+### Root Cause
+
+Several GitHub Actions (including `azure/login@v2`, `hashicorp/setup-terraform@v3`) still bundle Node.js 16/20 runtimes internally. GitHub plans to deprecate these.
+
+### Fix Applied
+
+Added environment variable to both deploy workflows:
+
+```yaml
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+```
+
+This forces the GitHub Actions runner to use Node.js 24 for all JavaScript actions. **Commit**: applied in deploy-dev.yml and deploy-prod.yml.
+
+---
+
+## Error 10 — Terraform State Conflicts After Failed CI Runs
+
+### Symptom
+
+```
+Error: A resource with the ID "..." already exists - to be managed via Terraform
+this resource needs to be imported into the State.
+```
+
+Or conversely:
+
+```
+Error: Provider produced inconsistent final plan — resource was destroyed
+but still appears in state
+```
+
+### Root Cause
+
+When a CI run fails partway through `terraform apply`, some resources may have been created in Azure but not fully recorded in state (or vice versa). Subsequent runs then find a mismatch between Terraform state and real Azure resources.
+
+An earlier workaround used `terraform state rm` before apply — but this caused Terraform to think resources didn't exist and attempt re-creation (which fails because they do exist in Azure).
+
+### Fix Applied
+
+Replaced `state rm` with idempotent `terraform import` in the CI pipeline:
+
+```bash
+# Check if resource exists in Azure, then import into state if not already there
+if az postgres flexible-server show --resource-group "$RG" --name "$PG" ...; then
+  terraform import ... module.postgres.azurerm_postgresql_flexible_server.this "${PG_BASE}" 2>/dev/null || true
+  # ... 3 more resources
+fi
+```
+
+The `|| true` makes each import a no-op if the resource is already in state. This is the correct idempotent pattern. **Commit**: current state of `deploy-dev.yml`.
