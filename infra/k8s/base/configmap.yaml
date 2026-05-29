@@ -4,6 +4,6 @@ metadata:
   name: app-config
   namespace: location-shared
 data:
-  NEXT_PUBLIC_API_BASE_URL: https://api.location-shared.example.com
-  CORS_ORIGINS: https://location-shared.example.com
+  NEXT_PUBLIC_API_BASE_URL: http://api.location-shared.4.231.68.185.sslip.io
+  CORS_ORIGINS: http://location-shared.4.231.68.185.sslip.io
   API_V1_PREFIX: /api/v1

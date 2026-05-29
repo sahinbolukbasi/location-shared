@@ -3,11 +3,10 @@ kind: Ingress
 metadata:
   name: location-shared
   namespace: location-shared
-  annotations:
-    kubernetes.io/ingress.class: webapprouting.kubernetes.azure.com
 spec:
+  ingressClassName: nginx
   rules:
-    - host: location-shared.example.com
+    - host: location-shared.4.231.68.185.sslip.io
       http:
         paths:
           - path: /
@@ -17,7 +16,7 @@ spec:
                 name: frontend
                 port:
                   number: 80
-    - host: api.location-shared.example.com
+    - host: api.location-shared.4.231.68.185.sslip.io
       http:
         paths:
           - path: /
