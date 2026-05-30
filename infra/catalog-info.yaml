@@ -1,0 +1,194 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: location-shared-platform-ops
+  title: Location Shared Platform Operations
+  description: Azure resource inventory, operational status, and cost management entry point.
+  annotations:
+    github.com/project-slug: sahinbolukbasi/location-shared
+    backstage.io/techdocs-ref: dir:..
+  links:
+    - url: https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.Resources%2Fsubscriptions%2Fresourcegroups
+      title: Azure Resource Groups
+      icon: dashboard
+    - url: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/CostAnalysis/openedBy/overview
+      title: Azure Cost Analysis
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/engineering
+  system: location-shared
+  dependsOn:
+    - resource:default/azure-rg-dev
+    - resource:default/azure-rg-prod
+    - resource:default/azure-aks-dev
+    - resource:default/azure-aks-prod
+    - resource:default/azure-postgres-dev
+    - resource:default/azure-postgres-prod
+    - resource:default/azure-acr-dev
+    - resource:default/azure-acr-prod
+    - resource:default/azure-keyvault-dev
+    - resource:default/azure-keyvault-prod
+    - resource:default/azure-observability-dev
+    - resource:default/azure-observability-prod
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-rg-dev
+  title: Azure Resource Group Dev
+  description: Resource group for all development environment resources.
+  tags: [azure, resource-group, dev]
+  links:
+    - url: https://portal.azure.com/#@d35a88c4-8fec-41d9-a641-c785d4a9ecf9/resource/subscriptions/4cf0d74f-7f78-413f-a9aa-9f97c39114d1/resourceGroups/rg-locationshared-dev/overview
+      title: rg-locationshared-dev
+      icon: dashboard
+spec:
+  type: azure-resource-group
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-rg-prod
+  title: Azure Resource Group Prod
+  description: Resource group for all production environment resources.
+  tags: [azure, resource-group, prod]
+  links:
+    - url: https://portal.azure.com/#@d35a88c4-8fec-41d9-a641-c785d4a9ecf9/resource/subscriptions/4cf0d74f-7f78-413f-a9aa-9f97c39114d1/resourceGroups/rg-locationshared-prod/overview
+      title: rg-locationshared-prod
+      icon: dashboard
+spec:
+  type: azure-resource-group
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-aks-dev
+  title: AKS Dev Cluster
+  description: Development Kubernetes cluster. Source of VMSS compute cost when running.
+  tags: [azure, aks, kubernetes, dev]
+  links:
+    - url: https://portal.azure.com/#@d35a88c4-8fec-41d9-a641-c785d4a9ecf9/resource/subscriptions/4cf0d74f-7f78-413f-a9aa-9f97c39114d1/resourceGroups/rg-locationshared-dev/providers/Microsoft.ContainerService/managedClusters/aks-locationshared-dev/overview
+      title: aks-locationshared-dev
+      icon: dashboard
+spec:
+  type: kubernetes-cluster
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-aks-prod
+  title: AKS Prod Cluster
+  description: Production Kubernetes cluster.
+  tags: [azure, aks, kubernetes, prod]
+  links:
+    - url: https://portal.azure.com/#@d35a88c4-8fec-41d9-a641-c785d4a9ecf9/resource/subscriptions/4cf0d74f-7f78-413f-a9aa-9f97c39114d1/resourceGroups/rg-locationshared-prod/providers/Microsoft.ContainerService/managedClusters/aks-locationshared-prod/overview
+      title: aks-locationshared-prod
+      icon: dashboard
+spec:
+  type: kubernetes-cluster
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-postgres-dev
+  title: PostgreSQL Dev
+  description: Development PostgreSQL flexible server.
+  tags: [azure, postgres, dev, database]
+spec:
+  type: database
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-postgres-prod
+  title: PostgreSQL Prod
+  description: Production PostgreSQL flexible server.
+  tags: [azure, postgres, prod, database]
+spec:
+  type: database
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-acr-dev
+  title: ACR Dev
+  description: Development container registry.
+  tags: [azure, acr, dev, registry]
+spec:
+  type: container-registry
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-acr-prod
+  title: ACR Prod
+  description: Production container registry.
+  tags: [azure, acr, prod, registry]
+spec:
+  type: container-registry
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-keyvault-dev
+  title: Key Vault Dev
+  description: Development secret vault.
+  tags: [azure, keyvault, dev, security]
+spec:
+  type: secret-store
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-keyvault-prod
+  title: Key Vault Prod
+  description: Production secret vault.
+  tags: [azure, keyvault, prod, security]
+spec:
+  type: secret-store
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-observability-dev
+  title: Observability Dev
+  description: Development Log Analytics and Application Insights resources.
+  tags: [azure, observability, dev]
+spec:
+  type: observability-stack
+  owner: group:default/engineering
+  system: location-shared
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: azure-observability-prod
+  title: Observability Prod
+  description: Production Log Analytics and Application Insights resources.
+  tags: [azure, observability, prod]
+spec:
+  type: observability-stack
+  owner: group:default/engineering
+  system: location-shared

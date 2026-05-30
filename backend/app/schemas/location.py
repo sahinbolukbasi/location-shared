@@ -17,6 +17,7 @@ class LocationResponse(BaseModel):
     latitude: float
     longitude: float
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

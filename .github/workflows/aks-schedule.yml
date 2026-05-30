@@ -1,0 +1,158 @@
+name: AKS Off-Hours Schedule
+
+on:
+  schedule:
+    # Stop: weekdays at 18:00 UTC
+    - cron: "0 18 * * 1-5"
+    # Start: weekdays at 07:00 UTC
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - start
+          - stop
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  stop-dev:
+    name: Stop Dev Resources
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 1-5') ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'stop' && inputs.environment == 'dev')
+    environment: dev
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Stop dev AKS cluster
+        run: |
+          echo "Stopping AKS cluster: aks-locationshared-dev"
+          az aks stop \
+            --resource-group rg-locationshared-dev \
+            --name aks-locationshared-dev \
+            --no-wait
+          echo "Stop command issued for AKS."
+
+      - name: Stop dev PostgreSQL
+        run: |
+          echo "Stopping PostgreSQL: pg-locationshared-dev"
+          az postgres flexible-server stop \
+            --resource-group rg-locationshared-dev \
+            --name pg-locationshared-dev
+          echo "PostgreSQL stopped."
+
+  start-dev:
+    name: Start Dev Resources
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '0 7 * * 1-5') ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'start' && inputs.environment == 'dev')
+    environment: dev
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Start dev AKS cluster
+        run: |
+          echo "Starting AKS cluster: aks-locationshared-dev"
+          az aks start \
+            --resource-group rg-locationshared-dev \
+            --name aks-locationshared-dev \
+            --no-wait
+          echo "Start command issued for AKS."
+
+      - name: Start dev PostgreSQL
+        run: |
+          echo "Starting PostgreSQL: pg-locationshared-dev"
+          az postgres flexible-server start \
+            --resource-group rg-locationshared-dev \
+            --name pg-locationshared-dev
+          echo "PostgreSQL started."
+
+  stop-prod:
+    name: Stop Prod Resources
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && inputs.action == 'stop' && inputs.environment == 'prod'
+    environment: prod
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Stop prod AKS cluster
+        run: |
+          echo "Stopping AKS cluster: aks-locationshared-prod"
+          az aks stop \
+            --resource-group rg-locationshared-prod \
+            --name aks-locationshared-prod \
+            --no-wait
+          echo "Stop command issued for AKS."
+
+      - name: Stop prod PostgreSQL
+        run: |
+          echo "Stopping PostgreSQL: pg-locationshared-prod"
+          az postgres flexible-server stop \
+            --resource-group rg-locationshared-prod \
+            --name pg-locationshared-prod
+          echo "PostgreSQL stopped."
+
+  start-prod:
+    name: Start Prod Resources
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && inputs.action == 'start' && inputs.environment == 'prod'
+    environment: prod
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Start prod AKS cluster
+        run: |
+          echo "Starting AKS cluster: aks-locationshared-prod"
+          az aks start \
+            --resource-group rg-locationshared-prod \
+            --name aks-locationshared-prod \
+            --no-wait
+          echo "Start command issued for AKS."
+
+      - name: Start prod PostgreSQL
+        run: |
+          echo "Starting PostgreSQL: pg-locationshared-prod"
+          az postgres flexible-server start \
+            --resource-group rg-locationshared-prod \
+            --name pg-locationshared-prod
+          echo "PostgreSQL started."

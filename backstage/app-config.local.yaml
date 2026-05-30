@@ -1,0 +1,32 @@
+# Local development overrides — loaded automatically by `yarn dev` / `yarn start`.
+# NOT committed to version control (already .gitignored by Backstage).
+#
+# Uses file: locations so the catalog can be populated from the local
+# filesystem without needing a GITHUB_TOKEN or pushing to the remote.
+
+backend:
+  auth:
+    dangerouslyDisableDefaultAuthPolicy: true
+
+catalog:
+  locations:
+    # Root system descriptor
+    - type: file
+      target: ../catalog-info.yaml
+      rules:
+        - allow: [System]
+    # Backend service + API
+    - type: file
+      target: ../backend/catalog-info.yaml
+      rules:
+        - allow: [Component, API]
+    # Frontend service
+    - type: file
+      target: ../frontend/catalog-info.yaml
+      rules:
+        - allow: [Component]
+    # Infrastructure resources + operations component
+    - type: file
+      target: ../infra/catalog-info.yaml
+      rules:
+        - allow: [Component, Resource]

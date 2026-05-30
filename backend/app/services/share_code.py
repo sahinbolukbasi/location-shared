@@ -1,4 +1,4 @@
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -9,7 +9,7 @@ from app.models.models import ShareCode
 
 def create_unique_code(db: Session, tries: int = 20) -> str:
     for _ in range(tries):
-        candidate = f"{random.randint(0, 999999):06d}"
+        candidate = f"{secrets.randbelow(1_000_000):06d}"
         exists = db.scalar(select(ShareCode.id).where(ShareCode.code == candidate))
         if not exists:
             return candidate

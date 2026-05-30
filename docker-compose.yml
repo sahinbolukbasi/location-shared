@@ -10,6 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d
 
   backend:
     build:
@@ -38,6 +39,24 @@ services:
       - backend
     ports:
       - "3000:3000"
+
+  backstage:
+    build:
+      context: ./backstage
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BACKSTAGE_BASE_URL: ${BACKSTAGE_BASE_URL:-http://localhost:7007}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backstage
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    depends_on:
+      - db
+    ports:
+      - "7007:7007"
 
 volumes:
   pg_data:

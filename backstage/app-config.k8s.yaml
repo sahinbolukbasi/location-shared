@@ -1,0 +1,36 @@
+app:
+  baseUrl: ${BACKSTAGE_BASE_URL}
+
+backend:
+  baseUrl: ${BACKSTAGE_BASE_URL}
+  listen:
+    port: 7007
+    host: 0.0.0.0
+  cors:
+    origin: ${BACKSTAGE_BASE_URL}
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+    img-src: ["'self'", 'data:', 'https:']
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: ${POSTGRES_DB:-backstage}
+
+# Secure auth — no dangerouslyDisableDefaultAuthPolicy
+# Guest provider only; replace with Entra ID / GitHub OAuth for prod
+auth:
+  environment: development
+  providers:
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}

@@ -120,15 +120,14 @@ async def stripe_webhook(
                 user.subscription_status = "past_due"
             db.commit()
 
-    if event["type"] in {"customer.subscription.deleted", "invoice.payment_failed"}:
+    if event["type"] == "customer.subscription.deleted":
         subscription_data = event["data"]["object"]
         customer_id = subscription_data.get("customer")
         user = db.scalar(select(User).where(User.stripe_customer_id == customer_id))
         if user:
-            user.subscription_status = "past_due" if event["type"] == "invoice.payment_failed" else "canceled"
-            if event["type"] == "customer.subscription.deleted":
-                user.plan = "free"
-                user.stripe_subscription_id = None
+            user.subscription_status = "canceled"
+            user.plan = "free"
+            user.stripe_subscription_id = None
             db.commit()
 
     return {"status": "ok"}

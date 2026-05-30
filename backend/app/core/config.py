@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "location-shared-api"
     api_v1_prefix: str = "/api/v1"
-    secret_key: str = "change-this-secret-key"
+    secret_key: str
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     database_url: str = "sqlite:///./location_shared.db"

@@ -1,0 +1,36 @@
+{
+  "name": "location-shared-backstage",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20 || 22 || 24"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "scripts": {
+    "dev": "concurrently \"yarn start\" \"yarn start-backend\"",
+    "start": "yarn workspace app start",
+    "start-backend": "yarn workspace backend start",
+    "build:all": "backstage-cli repo build --all",
+    "tsc": "tsc",
+    "tsc:full": "tsc --skipLibCheck false --incremental false",
+    "lint": "backstage-cli repo lint --since origin/main",
+    "prettier:check": "prettier --check .",
+    "fix": "backstage-cli repo fix",
+    "new": "backstage-cli new --scope internal"
+  },
+  "devDependencies": {
+    "@backstage/cli": "^0.36.2",
+    "concurrently": "^8.0.0",
+    "prettier": "^3.0.3",
+    "typescript": "~5.4.0"
+  },
+  "resolutions": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18"
+  },
+  "prettier": "@backstage/prettier-config"
+}

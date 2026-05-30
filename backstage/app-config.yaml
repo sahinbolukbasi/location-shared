@@ -1,0 +1,99 @@
+app:
+  title: Location Shared Developer Portal
+  baseUrl: http://localhost:3000
+
+organization:
+  name: Location Shared
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+    host: 0.0.0.0
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  database:
+    client: better-sqlite3
+    connection: ':memory:'
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+
+proxy:
+  endpoints: {}
+
+techdocs:
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'
+
+auth:
+  environment: development
+  providers:
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+
+scaffolder: {}
+
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location, User, Group]
+  locations:
+    # Root system descriptor
+    - type: url
+      target: https://raw.githubusercontent.com/sahinbolukbasi/location-shared/main/catalog-info.yaml
+      rules:
+        - allow: [System]
+    # Backend service
+    - type: url
+      target: https://raw.githubusercontent.com/sahinbolukbasi/location-shared/main/backend/catalog-info.yaml
+      rules:
+        - allow: [Component, API]
+    # Frontend service
+    - type: url
+      target: https://raw.githubusercontent.com/sahinbolukbasi/location-shared/main/frontend/catalog-info.yaml
+      rules:
+        - allow: [Component]
+    # Infrastructure resources and operations component
+    - type: url
+      target: https://raw.githubusercontent.com/sahinbolukbasi/location-shared/main/infra/catalog-info.yaml
+      rules:
+        - allow: [Component, Resource]
+
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters: []
+
+costInsights:
+  engineerCost: 200000
+  engineerCostInDollars: 200000
+  products:
+    computeEngine:
+      name: Compute Engine
+      icon: compute
+    cloudStorage:
+      name: Cloud Storage
+      icon: storage
+    bigQuery:
+      name: BigQuery
+      icon: search
+  metrics:
+    DAU:
+      name: Daily Active Users
+      default: true
+    MSC:
+      name: Monthly Subscribers Count

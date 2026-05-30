@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backstage
+  namespace: location-shared
+spec:
+  podSelector:
+    matchLabels:
+      app: backstage
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow only ingress-nginx controller to reach Backstage on port 7007
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - port: 7007
+          protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow HTTPS (GitHub catalog locations, TechDocs)
+    - ports:
+        - port: 443
+          protocol: TCP
+    # Allow PostgreSQL
+    - ports:
+        - port: 5432
+          protocol: TCP

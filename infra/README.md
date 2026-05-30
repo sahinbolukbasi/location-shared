@@ -26,19 +26,23 @@ terraform plan -var-file=environments/dev.tfvars
 terraform apply -var-file=environments/dev.tfvars
 ```
 
-## GitHub Actions Integration
+## CI/CD Guide
 
-Deployment workflows in `.github/workflows/deploy-dev.yml` and `.github/workflows/deploy-prod.yml`:
+For the full end-to-end deployment reference — how each GitHub Actions workflow works,
+how Terraform is triggered, how Docker images are built and tagged, how Kubernetes
+manifests are applied, and how to run Terraform locally — see:
 
-- run Terraform apply,
-- read outputs (`acr_name`, `acr_login_server`, `resource_group_name`, `aks_name`, `postgres_fqdn`),
-- build and push backend/frontend images,
-- upsert Kubernetes secrets,
-- apply `infra/k8s/base` manifests,
-- wait for rollout.
+**[CICD.md](./CICD.md)**
+
+Quick summary of what the deploy workflows do:
+1. Azure OIDC login (no stored secrets)
+2. `terraform init` with per-environment state key → `terraform apply`
+3. `docker build` + push to ACR (tagged with `git sha`)
+4. `az aks get-credentials` → `kubectl apply` secrets + manifests
+5. `kubectl rollout status` (waits for healthy rollout)
 
 ## Notes
 
-- Keep sensitive values in GitHub secrets, not in tfvars.
-- For production, move PostgreSQL to private networking and restrict public access.
-- Detailed operational docs are under `docs/infra`.
+- Keep sensitive values in GitHub Secrets, never in `.tfvars` files.
+- For production, move PostgreSQL to a private VNet and disable public access.
+- All modules have detailed inline comments in `main.tf` explaining every argument.

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: location-shared
+  labels:
+    app: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # Pull image from ACR — IMAGE_TAG is substituted by CI/CD (sed / envsubst)
+      containers:
+        - name: backstage
+          image: REPLACE_ACR_LOGIN_SERVER/location-shared-backstage:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 7007
+          # Inject all secrets from the backstage-secrets Secret object
+          envFrom:
+            - secretRef:
+                name: backstage-secrets
+          env:
+            - name: NODE_ENV
+              value: production
+          # Override CMD to use the K8s-specific config (no dangerouslyDisable* flags)
+          command:
+            - node
+            - packages/backend
+            - --config
+            - app-config.yaml
+            - --config
+            - app-config.k8s.yaml
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 7007
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 7007
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

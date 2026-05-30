@@ -1,0 +1,26 @@
+site_name: Location Shared
+site_description: Developer documentation for the Location Shared platform
+site_url: http://backstage.location-shared.4.231.68.185.sslip.io/docs/default/system/location-shared
+
+docs_dir: docs
+
+nav:
+  - Home: README.md
+  - Architecture: ARCHITECTURE.md
+  - Kubernetes: kubernetes.md
+  - Backstage Kubernetes Cost Playbook: backstage-kubernetes-cost.md
+  - Backstage Azure Governance: backstage-azure-governance.md
+  - CI/CD: ../infra/CICD.md
+  - Terraform: terraform.md
+  - Azure Setup: azure-setup.md
+  - Secrets Management: secrets.md
+  - Runbook: runbook.md
+  - Troubleshooting: troubleshooting.md
+  - Branch Strategy: branch-strategy.md
+  - GitHub Actions: github-actions.md
+
+plugins:
+  - techdocs-core
+
+theme:
+  name: material

@@ -1,0 +1,38 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: location-shared-frontend
+  title: Location Shared — Frontend
+  description: >
+    Next.js 14 (App Router, TypeScript) frontend for the location sharing
+    platform. Includes the live map, login, account, and anonymous open-link views.
+  annotations:
+    # GitHub — show Actions pipeline runs on the CI/CD tab
+    github.com/project-slug: sahinbolukbasi/location-shared
+    github.com/actions-workflow: deploy-dev.yml
+    # TechDocs — generate docs from the docs/ directory
+    backstage.io/techdocs-ref: url:https://github.com/sahinbolukbasi/location-shared
+    # Kubernetes plugin — match pods by label app=frontend in the location-shared namespace
+    backstage.io/kubernetes-id: frontend
+    backstage.io/kubernetes-namespace: location-shared
+    backstage.io/kubernetes-label-selector: app=frontend
+  tags:
+    - nextjs
+    - typescript
+    - react
+  links:
+    - url: http://location-shared.4.231.68.185.sslip.io
+      title: Live Site
+      icon: web
+spec:
+  type: website
+  lifecycle: production
+  owner: group:default/engineering
+  system: location-shared
+  dependsOn:
+    - resource:default/azure-aks-dev
+    - resource:default/azure-aks-prod
+    - resource:default/azure-acr-dev
+    - resource:default/azure-acr-prod
+  consumesApis:
+    - location-shared-api

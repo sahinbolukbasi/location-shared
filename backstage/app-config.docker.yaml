@@ -1,0 +1,30 @@
+app:
+  baseUrl: ${BACKSTAGE_BASE_URL:-http://localhost:7007}
+
+backend:
+  baseUrl: ${BACKSTAGE_BASE_URL:-http://localhost:7007}
+  listen:
+    port: 7007
+    host: 0.0.0.0
+  cors:
+    origin: ${BACKSTAGE_BASE_URL:-http://localhost:7007}
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST:-db}
+      port: ${POSTGRES_PORT:-5432}
+      user: ${POSTGRES_USER:-postgres}
+      password: ${POSTGRES_PASSWORD:-postgres}
+      database: ${POSTGRES_DB:-backstage}
+  auth:
+    dangerouslyDisableDefaultAuthPolicy: true
+
+auth:
+  environment: development
+  providers:
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+
+integrations:
+  github:
+    - host: github.com

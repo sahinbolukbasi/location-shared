@@ -1,0 +1,30 @@
+app:
+  baseUrl: http://backstage.location-shared.4.231.68.185.sslip.io
+
+backend:
+  baseUrl: http://backstage.location-shared.4.231.68.185.sslip.io
+  listen:
+    port: 7007
+    host: 0.0.0.0
+  cors:
+    origin: http://backstage.location-shared.4.231.68.185.sslip.io
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: backstage
+
+auth:
+  environment: production
+  providers:
+    guest: {}
+
+techdocs:
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'

@@ -24,5 +24,7 @@ async def verify_google_id_token(id_token: str) -> dict:
     name = payload.get("name") or "Google User"
     if not email or not sub:
         raise HTTPException(status_code=401, detail="Google token payload missing required claims")
+    if payload.get("email_verified") not in ("true", True):
+        raise HTTPException(status_code=401, detail="Google account email is not verified")
 
     return {"email": email, "sub": sub, "name": name}

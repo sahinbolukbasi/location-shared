@@ -1,0 +1,91 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: location-shared-backend
+  title: Location Shared — Backend
+  description: >
+    FastAPI (Python 3.12) REST API providing authentication (Google OAuth + JWT),
+    real-time location updates, Stripe subscription management, and share codes.
+  annotations:
+    # GitHub — show Actions pipeline runs on the CI/CD tab
+    github.com/project-slug: sahinbolukbasi/location-shared
+    github.com/actions-workflow: deploy-dev.yml
+    # TechDocs — generate docs from the docs/ directory
+    backstage.io/techdocs-ref: url:https://github.com/sahinbolukbasi/location-shared
+    # Kubernetes plugin — match pods by label app=backend in the location-shared namespace
+    backstage.io/kubernetes-id: backend
+    backstage.io/kubernetes-namespace: location-shared
+    backstage.io/kubernetes-label-selector: app=backend
+  tags:
+    - python
+    - fastapi
+    - postgresql
+    - stripe
+    - jwt
+  links:
+    - url: http://api.location-shared.4.231.68.185.sslip.io/docs
+      title: Swagger UI
+      icon: docs
+    - url: http://api.location-shared.4.231.68.185.sslip.io/api/v1/health
+      title: Health Check
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/engineering
+  system: location-shared
+  dependsOn:
+    - resource:default/azure-aks-dev
+    - resource:default/azure-aks-prod
+    - resource:default/azure-postgres-dev
+    - resource:default/azure-postgres-prod
+    - resource:default/azure-keyvault-dev
+    - resource:default/azure-keyvault-prod
+  providesApis:
+    - location-shared-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: location-shared-api
+  title: Location Shared REST API
+  description: OpenAPI specification for the Location Shared backend service.
+  annotations:
+    github.com/project-slug: sahinbolukbasi/location-shared
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/engineering
+  system: location-shared
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Location Shared API
+      version: "1.0.0"
+      description: Real-time location sharing REST API (FastAPI / Python 3.12)
+    servers:
+      - url: http://api.location-shared.4.231.68.185.sslip.io/api/v1
+    paths:
+      /health:
+        get:
+          summary: Health check
+          responses:
+            "200":
+              description: OK
+      /auth/google:
+        post:
+          summary: Google OAuth sign-in
+          responses:
+            "200":
+              description: JWT token pair
+      /locations:
+        get:
+          summary: List user locations
+          responses:
+            "200":
+              description: Array of locations
+        post:
+          summary: Create / update location
+          responses:
+            "201":
+              description: Location created

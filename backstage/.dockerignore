@@ -1,0 +1,22 @@
+.yarn
+node_modules
+packages/*/node_modules
+packages/*/coverage
+*.local
+
+# Exclude dist folders EXCEPT the backend bundles needed for Docker
+packages/app/dist
+packages/*/dist/*
+!packages/backend/dist/bundle.tar.gz
+!packages/backend/dist/skeleton.tar.gz
+
+# TechDocs generated output
+site/
+
+# Dev/build artifacts
+.git
+.github
+*.md
+!app-config.yaml
+!app-config.docker.yaml
+!app-config.k8s.yaml

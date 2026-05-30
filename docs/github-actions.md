@@ -296,30 +296,30 @@ flowchart TD
 
 ---
 
-## Gerekli GitHub Secrets
+## Required GitHub Secrets
 
-### Ortak (Her İki Env)
+### Common (Both Environments)
 
-| Secret | Açıklama |
+| Secret | Description |
 |---|---|
 | `AZURE_CLIENT_ID` | OIDC App Registration Client ID |
 | `AZURE_TENANT_ID` | Azure AD Tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure Subscription ID |
 
-### Dev Ortamı
+### Dev Environment
 
-| Secret | Açıklama |
+| Secret | Description |
 |---|---|
-| `POSTGRES_ADMIN_USERNAME_DEV` | PostgreSQL admin kullanıcı adı |
-| `POSTGRES_ADMIN_PASSWORD_DEV` | PostgreSQL admin parolası |
-| `APP_DB_USER_DEV` | Uygulama DB kullanıcısı (opsiyonel, admin fallback) |
-| `APP_DB_PASSWORD_DEV` | Uygulama DB parolası |
+| `POSTGRES_ADMIN_USERNAME_DEV` | PostgreSQL admin username |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | PostgreSQL admin password |
+| `APP_DB_USER_DEV` | Application DB user (optional; falls back to admin) |
+| `APP_DB_PASSWORD_DEV` | Application DB password |
 | `SECRET_KEY_DEV` | JWT signing key |
 | `GOOGLE_CLIENT_ID_DEV` | Google OAuth2 Client ID |
 | `STRIPE_SECRET_KEY_DEV` | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET_DEV` | Stripe webhook imzalama secret'ı |
+| `STRIPE_WEBHOOK_SECRET_DEV` | Stripe webhook signing secret |
 | `STRIPE_PRO_PRICE_ID_DEV` | Stripe Pro plan price ID |
 
-### Prod Ortamı
+### Prod Environment
 
-Aynı isimlendirme, `_DEV` yerine `_PROD` suffix kullanılır.
+Same naming convention as dev — replace the `_DEV` suffix with `_PROD`.

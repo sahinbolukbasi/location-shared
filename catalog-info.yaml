@@ -1,0 +1,41 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: location-shared
+  title: Location Shared
+  description: >
+    Real-time location sharing platform with Google OAuth, Stripe subscriptions,
+    and live tracking. Deployed on Azure Kubernetes Service (AKS).
+  annotations:
+    github.com/project-slug: sahinbolukbasi/location-shared
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - location
+    - fastapi
+    - nextjs
+    - kubernetes
+    - azure
+  links:
+    - url: http://location-shared.4.231.68.185.sslip.io
+      title: Live App
+      icon: web
+    - url: http://api.location-shared.4.231.68.185.sslip.io/docs
+      title: API Docs (Swagger)
+      icon: docs
+spec:
+  owner: group:default/engineering
+  hasComponents:
+    - component:default/location-shared-platform-ops
+  hasResources:
+    - resource:default/azure-rg-dev
+    - resource:default/azure-rg-prod
+    - resource:default/azure-aks-dev
+    - resource:default/azure-aks-prod
+    - resource:default/azure-postgres-dev
+    - resource:default/azure-postgres-prod
+    - resource:default/azure-acr-dev
+    - resource:default/azure-acr-prod
+    - resource:default/azure-keyvault-dev
+    - resource:default/azure-keyvault-prod
+    - resource:default/azure-observability-dev
+    - resource:default/azure-observability-prod

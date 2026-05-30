@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkapp=self.webpackChunkapp||[]).push([["8785"],{88942(e,r,u){u.d(r,{TechDocsReaderPage:()=>t.W});var t=u(44139)},16261(e,r,u){u.d(r,{J:()=>c});var t=u(14041);function c(e){let r=(0,t.useRef)(e);return r.current=e,(0,t.useMemo)(()=>Object.freeze({get current(){return r.current}}),[])}}}]);
+//# sourceMappingURL=8785.cdfd4b60.chunk.js.map

@@ -3,6 +3,12 @@ kind: Ingress
 metadata:
   name: location-shared
   namespace: location-shared
+  annotations:
+    # Backstage-specific: restrict to internal/corporate IPs if needed
+    # nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
 spec:
   ingressClassName: nginx
   rules:
@@ -24,5 +30,15 @@ spec:
             backend:
               service:
                 name: backend
+                port:
+                  number: 80
+    - host: backstage.location-shared.4.231.68.185.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backstage
                 port:
                   number: 80

@@ -86,7 +86,10 @@ jobs:
       - name: Build and push frontend image
         run: |
           set -euo pipefail
-          docker build -t ${{ steps.terraform.outputs.acr_login_server }}/location-shared-frontend:${{ github.sha }} ./frontend
+          docker build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=http://api.location-shared.4.231.68.185.sslip.io \
+            -t ${{ steps.terraform.outputs.acr_login_server }}/location-shared-frontend:${{ github.sha }} \
+            ./frontend
           docker push ${{ steps.terraform.outputs.acr_login_server }}/location-shared-frontend:${{ github.sha }}
 
       - name: Get AKS context

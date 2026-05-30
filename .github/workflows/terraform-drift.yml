@@ -1,0 +1,181 @@
+name: Terraform Drift Detection
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to check (leave empty for all)"
+        required: false
+        type: choice
+        options:
+          - all
+          - dev
+          - prod
+        default: all
+
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  drift-dev:
+    name: Drift Check — Dev
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.environment == 'all' || inputs.environment == 'dev'))
+    environment: dev
+    env:
+      TF_VAR_postgres_admin_password: ${{ secrets.DEV_POSTGRES_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.7"
+
+      - name: Terraform Init (dev)
+        run: |
+          terraform init \
+            -backend-config="key=dev.terraform.tfstate" \
+            -reconfigure \
+            -input=false
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+
+      - name: Terraform Plan (dev) — drift detection
+        id: plan-dev
+        run: |
+          terraform plan \
+            -detailed-exitcode \
+            -var-file=environments/dev.tfvars \
+            -input=false \
+            -out=tfplan-dev \
+            2>&1 | tee plan-dev.txt
+          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+        # exitcode: 0 = no changes, 1 = error, 2 = changes detected
+        continue-on-error: true
+
+      - name: Report Dev Drift
+        run: |
+          EXIT="${{ steps.plan-dev.outputs.exitcode }}"
+          echo "## Terraform Drift — Dev" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EXIT" = "0" ]; then
+            echo "✅ **No drift detected.** Infrastructure matches Terraform state." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$EXIT" = "2" ]; then
+            echo "⚠️ **Drift detected!** The following changes would be applied:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^\s*(#|~|+|-|<=)' plan-dev.txt | head -60 >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Run \`terraform apply -var-file=environments/dev.tfvars\` to reconcile." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ **Terraform plan failed.** Check workflow logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail on error (not drift)
+        if: steps.plan-dev.outputs.exitcode == '1'
+        run: exit 1
+
+  drift-prod:
+    name: Drift Check — Prod
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.environment == 'all' || inputs.environment == 'prod'))
+    environment: prod
+    env:
+      TF_VAR_postgres_admin_password: ${{ secrets.PROD_POSTGRES_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.7"
+
+      - name: Terraform Init (prod)
+        run: |
+          terraform init \
+            -backend-config="key=prod.terraform.tfstate" \
+            -reconfigure \
+            -input=false
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+
+      - name: Terraform Plan (prod) — drift detection
+        id: plan-prod
+        run: |
+          terraform plan \
+            -detailed-exitcode \
+            -var-file=environments/prod.tfvars \
+            -input=false \
+            -out=tfplan-prod \
+            2>&1 | tee plan-prod.txt
+          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+        continue-on-error: true
+
+      - name: Report Prod Drift
+        run: |
+          EXIT="${{ steps.plan-prod.outputs.exitcode }}"
+          echo "## Terraform Drift — Prod" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EXIT" = "0" ]; then
+            echo "✅ **No drift detected.** Infrastructure matches Terraform state." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$EXIT" = "2" ]; then
+            echo "⚠️ **Drift detected!** The following changes would be applied:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^\s*(#|~|+|-|<=)' plan-prod.txt | head -60 >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Run \`terraform apply -var-file=environments/prod.tfvars\` to reconcile." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ **Terraform plan failed.** Check workflow logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail on error (not drift)
+        if: steps.plan-prod.outputs.exitcode == '1'
+        run: exit 1

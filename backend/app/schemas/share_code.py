@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ShareCodeCreateRequest(BaseModel):
@@ -10,8 +10,11 @@ class ShareCodeCreateRequest(BaseModel):
 
 
 class ShareCodeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     code: str
     latitude: float
     longitude: float
     location_name: str
     expires_at: datetime
+    uses: int
